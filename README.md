@@ -63,6 +63,11 @@
 
 UI 已全量国际化：**简体中文 / 繁体中文 / 文言文**显示中文界面，其他语言自动使用英文——跟随 Minecraft 客户端语言设置，无需任何配置。服务端插件的消息由客户端内置映射表翻译（`ServerErrors`），服务端无需改动。
 
+## 已知限制
+
+- **英文界面下部分按钮文案较长，可能出现溢出/重叠**（按钮宽度为硬编码像素，按中文排版设计）。不影响任何功能与数据，仅观感问题；中文界面排版完整。
+- 未安装模组的玩家看到的聊天只读 UI、服务端 wiki 导出为中文（服务端能力，插件已冻结）。
+
 ## 许可
 
 [MIT](LICENSE)。第三方组件声明见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
@@ -77,6 +82,8 @@ A **project-coordination memo system** for technical Minecraft communities: proj
 - **Works in singleplayer** too: built-in local backend, data stored inside the world save.
 - Optional **Redis mirror mode**: other servers (e.g. a creative server) can run read-only mirrors with live sync.
 - **Fully localized UI**: Simplified/Traditional Chinese and Classical Chinese show the Chinese interface; all other languages automatically use English (follows the Minecraft client language, zero config). Server plugin messages are translated client-side via a built-in mapping table — no server-side changes needed.
+
+**Known limitation**: in the English UI some buttons may overflow or overlap (button widths are hard-coded pixels designed for Chinese text). Purely cosmetic — no functional impact; the Chinese UI is pixel-perfect.
 - Integrations: Markdown wiki export, `[MEMO-EVENT]` console lines (project created/completed/deleted) for chat bots, LuckPerms permission nodes plus per-project manager lists (data-driven, no permission nodes needed).
 
 **Install**: drop the jar into `plugins/` (server) or `mods/` (client, requires Fabric API; **malilib is NOT required**). See config comments in `plugins/ProjectMemo/config.yml` for `role`/`redis`/`wiki-export`/`qq-events`.
