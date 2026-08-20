@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "projectmemo",
+	"version": "${version}",
+	"name": "ProjectMemo Client",
+	"description": "工程备忘录客户端模组：masa 风格面板 GUI，工程/子任务/材料管理的唯一主修改入口。需服务器安装 memo-server 插件。",
+	"authors": [
+		"sth-strange"
+	],
+	"contact": {},
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.sthstrange.projectmemo.client.MemoClientMod"
+		]
+	},
+	"mixins": [],
+	"depends": {
+		"fabricloader": ">=0.19.0",
+		"fabric-api": "*",
+		"minecraft": "~1.21.11",
+		"java": ">=21"
+	}
+}

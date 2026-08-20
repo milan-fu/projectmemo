@@ -1,0 +1,11 @@
+# build outputs
+server/build/
+client/build/
+client/.gradle/
+*.log
+*.done
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,30 @@
+# ProjectMemo 配置
+# role: single（单服，测试/生产前置） | writer（生产主服，M4+ 开 Redis 镜像） | mirror（创造服只读，M5）
+role: single
+
+# 每人每日可创建的大条目（工程）上限，按服务器时区自然日重置
+daily-project-limit: 2
+
+# AuthMe 登录后发送进服按钮
+join-button: true
+
+# 定时兜底存盘间隔（分钟）；数据变更时也会即时原子存盘
+save-interval-min: 5
+
+# QQ bot 事件行（M3）：立项/竣工/删除时打 [MEMO-EVENT] JSON 日志行供 bot 播报；mirror 无写操作天然无事件
+qq-events: true
+
+# wiki 导出（M4 启用；开启后写 plugins/ProjectMemo/wiki-export/）
+wiki-export: false
+# wiki 导出防抖秒数（数据变更后延迟导出，期间多次变更合并为一次）
+wiki-export-debounce-sec: 60
+
+# Redis 创造服只读镜像（M5 启用；single/writer 默认关闭）
+redis:
+  enabled: false
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  channel: memo
+  # 快照键（writer SET / mirror GET）；测试请用隔离键如 memo-test:snapshot
+  snapshot-key: memo:snapshot

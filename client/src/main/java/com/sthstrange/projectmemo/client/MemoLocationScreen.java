@@ -1,0 +1,185 @@
+package com.sthstrange.projectmemo.client;
+
+import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.KeyEvent;
+
+/**
+ * 选址编辑屏：手动输入坐标 / 取脚下 / 隐藏切换 / 锁（防误改）。
+ * 锁定实时生效（输入框立刻变灰/变白）；保存后停留本页；
+ * 未保存修改（坐标/备注）退出时二次确认。
+ */
+public final class MemoLocationScreen extends MemoScreenBase {
+
+    private final int projectId;
+    private EditBox xBox, yBox, zBox, noteBox;
+    private String snapX = "", snapY = "", snapZ = "", snapNote = "";
+
+    public MemoLocationScreen(int projectId) {
+        super("编辑选址");
+        this.projectId = projectId;
+    }
+
+    private MemoData.Project pr() {
+        return MemoClientState.data().projectById(projectId);
+    }
+
+    private boolean dirty() {
+        return !snapX.equals(xBox.getValue().trim()) || !snapY.equals(yBox.getValue().trim())
+                || !snapZ.equals(zBox.getValue().trim()) || !snapNote.equals(noteBox.getValue().trim());
+    }
+
+    private void takeSnapshot() {
+        snapX = xBox.getValue().trim();
+        snapY = yBox.getValue().trim();
+        snapZ = zBox.getValue().trim();
+        snapNote = noteBox.getValue().trim();
+    }
+
+    /** 锁状态变化时实时刷新输入框可用性（无需退出重进） */
+    private void applyLockToBoxes(boolean locked) {
+        if (xBox == null) return;
+        xBox.setEditable(!locked);
+        yBox.setEditable(!locked);
+        zBox.setEditable(!locked);
+        noteBox.setEditable(!locked);
+    }
+
+    @Override
+    protected void buildWidgets() {
+        MemoData.Project pr = pr();
+        if (pr == null) return;
+        int panelW = Math.min(320, this.width - 30);
+        int x0 = (this.width - panelW) / 2;
+        int y0 = (this.height - 170) / 2;
+
+        xBox = addEditBox(new EditBox(this.font, x0 + 50, y0 + 46, 70, 16, net.minecraft.network.chat.Component.literal("X")));
+        yBox = addEditBox(new EditBox(this.font, x0 + 140, y0 + 46, 70, 16, net.minecraft.network.chat.Component.literal("Y")));
+        zBox = addEditBox(new EditBox(this.font, x0 + 230, y0 + 46, 70, 16, net.minecraft.network.chat.Component.literal("Z")));
+        xBox.setValue(String.valueOf(pr.locX));
+        yBox.setValue(String.valueOf(pr.locY));
+        zBox.setValue(String.valueOf(pr.locZ));
+
+        noteBox = addEditBox(new EditBox(this.font, x0 + 50, y0 + 70, panelW - 60, 16, net.minecraft.network.chat.Component.literal("备注")));
+        noteBox.setMaxLength(60);
+        noteBox.setValue(pr.locNote);
+
+        takeSnapshot();
+        applyLockToBoxes(pr.locLocked);
+    }
+
+    @Override
+    protected void layoutAndDraw(GuiGraphics g, int mouseX, int mouseY) {
+        MemoData.Project pr = pr();
+        if (pr == null) return;
+        int panelW = Math.min(320, this.width - 30);
+        int panelH = 170;
+        int x0 = (this.width - panelW) / 2;
+        int y0 = (this.height - panelH) / 2;
+        UiKit.panel(g, x0, y0, panelW, panelH);
+
+        g.drawString(this.font, "编辑选址 · 《" + UiKit.trunc(pr.title, 16) + "》", x0 + 10, y0 + 8, UiKit.TEXT, false);
+        // 世界：显示玩家当前所在世界（保存时选址就记这个世界）
+        String curWorld = UiKit.worldCn(null);
+        if (Minecraft.getInstance().player != null) {
+            curWorld = UiKit.worldCn(Minecraft.getInstance().player.level().dimension().identifier().toString());
+        }
+        String worldInfo = pr.locWorld.isEmpty()
+                ? "当前世界: " + curWorld + "（保存后记为这个世界）"
+                : "已存世界: " + UiKit.worldCn(pr.locWorld) + "（再保存将更新为当前世界: " + curWorld + "）";
+        g.drawString(this.font, worldInfo, x0 + 10, y0 + 22, UiKit.DIM, false);
+        if (pr.locLocked) {
+            g.drawString(this.font, "🔒", x0 + 10 + this.font.width(worldInfo) + 6, y0 + 22, UiKit.GOLD, false);
+        }
+
+        g.drawString(this.font, "X", x0 + 40, y0 + 50, UiKit.DIM, false);
+        g.drawString(this.font, "Y", x0 + 130, y0 + 50, UiKit.DIM, false);
+        g.drawString(this.font, "Z", x0 + 220, y0 + 50, UiKit.DIM, false);
+        g.drawString(this.font, "备注", x0 + 10, y0 + 74, UiKit.DIM, false);
+
+        boolean locked = pr.locLocked;
+        int by = y0 + 96;
+        UiKit.UiButton here = new UiKit.UiButton(x0 + 10, by, 62, 16, "取脚下坐标", locked ? null : () -> {
+            if (Minecraft.getInstance().player == null) return;
+            var pos = Minecraft.getInstance().player.blockPosition();
+            xBox.setValue(String.valueOf(pos.getX()));
+            yBox.setValue(String.valueOf(pos.getY()));
+            zBox.setValue(String.valueOf(pos.getZ()));
+        });
+        if (locked) here.disabled();
+        here.tooltip("把坐标填为当前脚下位置");
+        uiButtons.add(here);
+
+        UiKit.UiButton lockBtn = new UiKit.UiButton(x0 + 158, by, 66, 16, locked ? "🔓 解锁" : "🔒 锁定", () -> {
+            JsonObject args = MemoClientState.argsOf("project", pr.id);
+            args.addProperty("locked", !locked);
+            MemoClientState.sendAction("set_loc_lock", args);
+            applyLockToBoxes(!locked); // 输入框立刻变灰/变白，不用退出重进
+        });
+        lockBtn.tooltip(locked ? "解锁后才能修改选址" : "锁定选址，防止误改");
+        uiButtons.add(lockBtn);
+
+        UiKit.UiButton hideBtn = new UiKit.UiButton(x0 + 230, by, 80, 16, pr.locHidden ? "取消隐藏坐标" : "隐藏坐标", locked ? null : () ->
+                MemoClientState.sendAction("set_loc_hidden", MemoClientState.argsOf("project", pr.id)));
+        if (locked) hideBtn.disabled();
+        hideBtn.tooltip(pr.locHidden ? "当前已隐藏：普通玩家看不到坐标" : "隐藏后普通玩家看不到坐标");
+        uiButtons.add(hideBtn);
+
+        int by2 = y0 + panelH - 24;
+        UiKit.UiButton save = new UiKit.UiButton(x0 + 10, by2, 52, 16, "保存", locked ? null : () -> {
+            try {
+                int x = Integer.parseInt(xBox.getValue().trim());
+                int y = Integer.parseInt(yBox.getValue().trim());
+                int z = Integer.parseInt(zBox.getValue().trim());
+                JsonObject args = MemoClientState.argsOf("project", pr.id, "x", x);
+                args.addProperty("y", y);
+                args.addProperty("z", z);
+                args.addProperty("note", noteBox.getValue().trim());
+                MemoClientState.sendAction("set_location_manual", args);
+                takeSnapshot(); // 保存后不再算"未保存修改"
+                MemoToast.push("选址已保存", MemoToast.GREEN);
+            } catch (NumberFormatException e) {
+                MemoToast.push("坐标必须是整数", MemoToast.RED);
+            }
+        });
+        if (locked) save.disabled();
+        uiButtons.add(save);
+
+        UiKit.UiButton clear = new UiKit.UiButton(x0 + 70, by2, 52, 16, "清除", locked ? null : () ->
+                this.minecraft.setScreen(new MemoConfirmDialog(this, "清除选址", "清除该工程的选址与投影原点？", true, () -> {
+                    MemoClientState.sendAction("clear_location", MemoClientState.argsOf("project", pr.id));
+                    this.minecraft.setScreen(new ProjectDetailScreen(projectId));
+                })));
+        if (locked) clear.disabled();
+        uiButtons.add(clear);
+
+        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by2, 52, 16, "返回", this::tryLeave);
+        uiButtons.add(back);
+
+        if (dirty()) {
+            g.drawString(this.font, "● 有未保存的修改", x0 + panelW - 10 - this.font.width("● 有未保存的修改"), y0 + 8, UiKit.GOLD, false);
+        }
+    }
+
+    /** 退出：有未保存修改时二次确认 */
+    private void tryLeave() {
+        if (dirty()) {
+            this.minecraft.setScreen(new MemoConfirmDialog(this, "未保存的修改",
+                    "选址修改还没保存，确定退出？\n（坐标/备注的改动将丢失）", true,
+                    () -> this.minecraft.setScreen(new ProjectDetailScreen(projectId))));
+        } else {
+            this.minecraft.setScreen(new ProjectDetailScreen(projectId));
+        }
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (event.key() == 256) { // ESC：有未保存修改先确认
+            tryLeave();
+            return true;
+        }
+        return super.keyPressed(event);
+    }
+}
