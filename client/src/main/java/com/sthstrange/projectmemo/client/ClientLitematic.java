@@ -29,18 +29,18 @@ public final class ClientLitematic {
         try {
             root = MemoNbt.readGzip(file);
         } catch (Exception e) {
-            out.error = "投影文件解析失败: " + e.getMessage();
+            out.error = L10n.get("projectmemo.litematic.parseFail") + ": " + e.getMessage();
             return out;
         }
         Object regionsObj = root.get("Regions");
         if (!(regionsObj instanceof Map)) {
-            out.error = "不是有效的 litematic 文件（缺少 Regions）";
+            out.error = L10n.get("projectmemo.litematic.noRegions");
             return out;
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> regions = (Map<String, Object>) regionsObj;
         if (regions.isEmpty()) {
-            out.error = "投影为空（没有区域）";
+            out.error = L10n.get("projectmemo.litematic.empty");
             return out;
         }
         for (Map.Entry<String, Object> e : regions.entrySet()) {
@@ -50,11 +50,11 @@ public final class ClientLitematic {
             try {
                 parseRegion(region, out);
             } catch (Exception ex) {
-                out.error = "投影区域解析失败: " + (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+                out.error = L10n.get("projectmemo.litematic.regionFail") + ": " + (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
                 return out;
             }
         }
-        if (out.counts.isEmpty() && out.error == null) out.error = "投影里没有可作为物品的方块";
+        if (out.counts.isEmpty() && out.error == null) out.error = L10n.get("projectmemo.litematic.noItems");
         return out;
     }
 
@@ -82,7 +82,7 @@ public final class ClientLitematic {
         long volume = size == null ? 0
                 : (long) Math.abs(size[0]) * Math.abs(size[1]) * Math.abs(size[2]);
         if (volume <= 0) return;
-        if (volume > 64_000_000) { out.error = "投影区域过大（>6400 万方块）"; return; }
+        if (volume > 64_000_000) { out.error = L10n.get("projectmemo.litematic.tooBig"); return; }
 
         int bits = Math.max(1, 32 - Integer.numberOfLeadingZeros(palette.size() - 1));
         long mask = (1L << bits) - 1;

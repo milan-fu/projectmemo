@@ -27,7 +27,7 @@ public final class MemoNbt {
              DataInputStream dis = new DataInputStream(gz)) {
             MemoNbt r = new MemoNbt(dis);
             int type = dis.readUnsignedByte();
-            if (type != 10) throw new IOException("根标签不是复合标签: type=" + type);
+            if (type != 10) throw new IOException(L10n.get("projectmemo.nbt.badRoot", type));
             r.readString();
             @SuppressWarnings("unchecked")
             Map<String, Object> root = (Map<String, Object>) r.readPayload(10, 0);
@@ -37,14 +37,14 @@ public final class MemoNbt {
 
     private String readString() throws IOException {
         int len = in.readUnsignedShort();
-        if (len < 0 || len > 65535) throw new IOException("非法字符串长度 " + len);
+        if (len < 0 || len > 65535) throw new IOException(L10n.get("projectmemo.nbt.badStringLen", len));
         byte[] bytes = new byte[len];
         in.readFully(bytes);
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
     private Object readPayload(int type, int depth) throws IOException {
-        if (depth > MAX_DEPTH) throw new IOException("NBT 深度超限");
+        if (depth > MAX_DEPTH) throw new IOException(L10n.get("projectmemo.nbt.depth"));
         switch (type) {
             case 1: return (byte) in.readByte();
             case 2: return in.readShort();
@@ -93,11 +93,11 @@ public final class MemoNbt {
                 return a;
             }
             default:
-                throw new IOException("未知 NBT 类型 " + type);
+                throw new IOException(L10n.get("projectmemo.nbt.unknownType", type));
         }
     }
 
     private static void checkLen(int n) throws IOException {
-        if (n < 0 || n > 64_000_000) throw new IOException("非法数组长度 " + n);
+        if (n < 0 || n > 64_000_000) throw new IOException(L10n.get("projectmemo.nbt.badArrayLen", n));
     }
 }

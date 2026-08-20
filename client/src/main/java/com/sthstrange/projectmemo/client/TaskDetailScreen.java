@@ -22,7 +22,7 @@ public final class TaskDetailScreen extends MemoScreenBase {
     private boolean isCollect;
 
     public TaskDetailScreen(int taskId) {
-        super("子任务详情");
+        super(L10n.get("projectmemo.task.screenTitle"));
         this.taskId = taskId;
     }
 
@@ -40,8 +40,8 @@ public final class TaskDetailScreen extends MemoScreenBase {
         progH = 0;
 
         if (t == null) {
-            g.drawString(this.font, "子任务不存在（可能已被删除）", x0 + 12, y0 + 20, UiKit.RED, false);
-            UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by, 52, 16, "返回", () -> {
+            g.drawString(this.font, L10n.get("projectmemo.task.gone"), x0 + 12, y0 + 20, UiKit.RED, false);
+            UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by, 52, 16, L10n.get("projectmemo.common.back"), () -> {
                 if (knownProjectId >= 0) this.minecraft.setScreen(new ProjectDetailScreen(knownProjectId, 1));
                 else this.minecraft.setScreen(new MemoMainScreen());
             });
@@ -51,8 +51,8 @@ public final class TaskDetailScreen extends MemoScreenBase {
         knownProjectId = t.projectId;
         MemoData.Project pr = data.projectById(t.projectId);
         if (pr == null) {
-            g.drawString(this.font, "所属工程不存在", x0 + 12, y0 + 20, UiKit.RED, false);
-            UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by, 52, 16, "返回", () ->
+            g.drawString(this.font, L10n.get("projectmemo.task.projectGone"), x0 + 12, y0 + 20, UiKit.RED, false);
+            UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by, 52, 16, L10n.get("projectmemo.common.back"), () ->
                     this.minecraft.setScreen(new MemoMainScreen()));
             uiButtons.add(back);
             return;
@@ -69,33 +69,33 @@ public final class TaskDetailScreen extends MemoScreenBase {
         String sym;
         int color;
         String statusText;
-        if ("done".equals(t.status)) { sym = "✔"; color = UiKit.GREEN; statusText = "已完成"; }
-        else if ("claimed".equals(t.status)) { sym = "◔"; color = UiKit.YELLOW; statusText = "已认领"; }
-        else { sym = "○"; color = UiKit.DIM; statusText = "待认领"; }
+        if ("done".equals(t.status)) { sym = "✔"; color = UiKit.GREEN; statusText = L10n.get("projectmemo.task.statusDone"); }
+        else if ("claimed".equals(t.status)) { sym = "◔"; color = UiKit.YELLOW; statusText = L10n.get("projectmemo.task.statusClaimed"); }
+        else { sym = "○"; color = UiKit.DIM; statusText = L10n.get("projectmemo.task.statusOpen"); }
         g.drawString(this.font, sym, x0 + 10, y0 + 8, color, false);
         g.drawString(this.font, UiKit.truncPx(this.font, t.title, panelW - 120), x0 + 22, y0 + 8, UiKit.TEXT, false);
         g.drawString(this.font, statusText, x0 + panelW - 10 - this.font.width(statusText), y0 + 8, color, false);
 
         int y = y0 + 24;
-        g.drawString(this.font, "所属工程: 《" + UiKit.trunc(pr.title, 16) + "》"
-                + (isCollect ? "  ·  材料收集任务" : ""), x0 + 10, y, UiKit.DIM, false);
+        g.drawString(this.font, L10n.get("projectmemo.task.projectOf", UiKit.trunc(pr.title, 16))
+                + (isCollect ? L10n.get("projectmemo.task.collectSuffix") : ""), x0 + 10, y, UiKit.DIM, false);
         y += 13;
         if (!t.assignee.isEmpty()) {
-            g.drawString(this.font, "认领人: " + t.assignee + "（" + UiKit.fmtDate(t.claimedAt) + "）", x0 + 10, y, UiKit.DIM, false);
+            g.drawString(this.font, L10n.get("projectmemo.task.claimedBy", t.assignee, UiKit.fmtDate(t.claimedAt)), x0 + 10, y, UiKit.DIM, false);
             y += 13;
         }
         if (t.doneAt > 0) {
-            g.drawString(this.font, "完成时间: " + UiKit.fmtDate(t.doneAt), x0 + 10, y, UiKit.GREEN, false);
+            g.drawString(this.font, L10n.get("projectmemo.task.doneAt", UiKit.fmtDate(t.doneAt)), x0 + 10, y, UiKit.GREEN, false);
             y += 13;
         }
         y += 3;
 
         if (isCollect) {
             // ── 收集任务：可滚动的实时收集进度（无说明区） ──
-            g.drawString(this.font, "收集进度（材料齐了会在核验时自动完成）:", x0 + 10, y, UiKit.DIM, false);
+            g.drawString(this.font, L10n.get("projectmemo.task.collectHint"), x0 + 10, y, UiKit.DIM, false);
             if (canEdit) {
-                UiKit.UiButton rename = new UiKit.UiButton(x0 + panelW - 66, y - 2, 56, 14, "改标题", () ->
-                        this.minecraft.setScreen(new MemoInputDialog(this, "修改标题", "子任务标题（≤40 字）", t.title, 40,
+                UiKit.UiButton rename = new UiKit.UiButton(x0 + panelW - 66, y - 2, 56, 14, L10n.get("projectmemo.task.rename"), () ->
+                        this.minecraft.setScreen(new MemoInputDialog(this, L10n.get("projectmemo.task.renameTitle"), L10n.get("projectmemo.task.renamePrompt"), t.title, 40,
                                 v -> MemoClientState.sendAction("task_rename",
                                         MemoClientState.argsOf("task", t.id, "title", v)))));
                 uiButtons.add(rename);
@@ -121,7 +121,7 @@ public final class TaskDetailScreen extends MemoScreenBase {
             double maxProgScroll = Math.max(0, total * lineH - progH);
             progScroll = clampScroll(progScroll, maxProgScroll);
             if (total == 0) {
-                g.drawString(this.font, "（该任务没有关联材料）", x0 + 14, y, UiKit.FAINT, false);
+                g.drawString(this.font, L10n.get("projectmemo.task.noMaterials"), x0 + 14, y, UiKit.FAINT, false);
             } else {
                 g.enableScissor(progX, progY, progX + progW, progY + progH);
                 int py = progY - (int) progScroll;
@@ -131,7 +131,7 @@ public final class TaskDetailScreen extends MemoScreenBase {
                         boolean ok = delivered >= need;
                         g.drawString(this.font, (ok ? "✔ " : "· ") + UiKit.truncPx(this.font, names.get(e.getKey()), 150),
                                 x0 + 14, py, ok ? UiKit.GREEN : UiKit.TEXT, false);
-                        g.drawString(this.font, delivered + " / " + need + " 个",
+                        g.drawString(this.font, L10n.get("projectmemo.task.progressCount", delivered, need),
                                 x0 + 170, py, ok ? UiKit.GREEN : UiKit.DIM, false);
                     }
                     py += lineH;
@@ -143,15 +143,15 @@ public final class TaskDetailScreen extends MemoScreenBase {
             }
         } else {
             // ── 自定义任务：说明区（可滚动） ──
-            g.drawString(this.font, "说明:", x0 + 10, y, UiKit.DIM, false);
+            g.drawString(this.font, L10n.get("projectmemo.task.noteLabel"), x0 + 10, y, UiKit.DIM, false);
             if (canEdit) {
-                UiKit.UiButton editNote = new UiKit.UiButton(x0 + panelW - 66, y - 2, 56, 14, "编辑说明", () ->
-                        this.minecraft.setScreen(new MemoTextScreen("子任务说明", t.note, this,
+                UiKit.UiButton editNote = new UiKit.UiButton(x0 + panelW - 66, y - 2, 56, 14, L10n.get("projectmemo.task.editNote"), () ->
+                        this.minecraft.setScreen(new MemoTextScreen(L10n.get("projectmemo.task.noteTitle"), t.note, this,
                                 v -> MemoClientState.sendAction("task_set_note",
                                         MemoClientState.argsOf("task", t.id, "note", v)))));
                 uiButtons.add(editNote);
-                UiKit.UiButton rename = new UiKit.UiButton(x0 + panelW - 128, y - 2, 56, 14, "改标题", () ->
-                        this.minecraft.setScreen(new MemoInputDialog(this, "修改标题", "子任务标题（≤40 字）", t.title, 40,
+                UiKit.UiButton rename = new UiKit.UiButton(x0 + panelW - 128, y - 2, 56, 14, L10n.get("projectmemo.task.rename"), () ->
+                        this.minecraft.setScreen(new MemoInputDialog(this, L10n.get("projectmemo.task.renameTitle"), L10n.get("projectmemo.task.renamePrompt"), t.title, 40,
                                 v -> MemoClientState.sendAction("task_rename",
                                         MemoClientState.argsOf("task", t.id, "title", v)))));
                 uiButtons.add(rename);
@@ -162,7 +162,7 @@ public final class TaskDetailScreen extends MemoScreenBase {
             noteW = panelW - 20;
             noteH = by - 8 - y;
             if (t.note.isEmpty()) {
-                g.drawString(this.font, "（无说明）", x0 + 14, y, UiKit.FAINT, false);
+                g.drawString(this.font, L10n.get("projectmemo.task.noNote"), x0 + 14, y, UiKit.FAINT, false);
             } else {
                 List<FormattedCharSequence> lines = this.font.split(
                         net.minecraft.network.chat.Component.literal(t.note), panelW - 28);
@@ -187,45 +187,45 @@ public final class TaskDetailScreen extends MemoScreenBase {
         int bx = x0 + 10;
         if (editable && !MemoClientState.readOnly()) {
             if ("open".equals(t.status)) {
-                UiKit.UiButton claim = new UiKit.UiButton(bx, by, 44, 16, "认领", () ->
+                UiKit.UiButton claim = new UiKit.UiButton(bx, by, 44, 16, L10n.get("projectmemo.task.claim"), () ->
                         MemoClientState.sendAction("claim", MemoClientState.argsOf("task", t.id)));
                 uiButtons.add(claim);
                 bx += 48;
             } else if ("claimed".equals(t.status)) {
                 if (t.assignee.equals(self)) {
-                    UiKit.UiButton done = new UiKit.UiButton(bx, by, 58, 16, "任务完工", () ->
+                    UiKit.UiButton done = new UiKit.UiButton(bx, by, 58, 16, L10n.get("projectmemo.task.finish"), () ->
                             MemoClientState.sendAction("task_done", MemoClientState.argsOf("task", t.id)));
                     uiButtons.add(done);
                     bx += 62;
-                    UiKit.UiButton unclaim = new UiKit.UiButton(bx, by, 52, 16, "取消认领", () ->
+                    UiKit.UiButton unclaim = new UiKit.UiButton(bx, by, 52, 16, L10n.get("projectmemo.task.unclaimSelf"), () ->
                             MemoClientState.sendAction("unclaim", MemoClientState.argsOf("task", t.id)));
                     uiButtons.add(unclaim);
                     bx += 56;
                 } else if (mgr) {
-                    UiKit.UiButton done = new UiKit.UiButton(bx, by, 44, 16, "代完", () ->
+                    UiKit.UiButton done = new UiKit.UiButton(bx, by, 44, 16, L10n.get("projectmemo.task.proxyDone"), () ->
                             MemoClientState.sendAction("task_done", MemoClientState.argsOf("task", t.id)));
                     uiButtons.add(done);
                     bx += 48;
                     // 撤销他人认领 = 破坏性操作（对方正在做的任务被释放），二次确认
-                    UiKit.UiButton unclaim = new UiKit.UiButton(bx, by, 58, 16, "撤销认领", () ->
-                            this.minecraft.setScreen(new MemoConfirmDialog(this, "撤销认领",
-                                    "撤销 " + t.assignee + " 对「" + UiKit.trunc(t.title, 16) + "」的认领？任务将变回待认领。", false,
+                    UiKit.UiButton unclaim = new UiKit.UiButton(bx, by, 58, 16, L10n.get("projectmemo.task.revoke"), () ->
+                            this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.task.revokeTitle"),
+                                    L10n.get("projectmemo.task.revokeMsg", t.assignee, UiKit.trunc(t.title, 16)), false,
                                     () -> MemoClientState.sendAction("unclaim", MemoClientState.argsOf("task", t.id)))));
-                    unclaim.tooltip("撤销他人的认领（需要确认）");
+                    unclaim.tooltip(L10n.get("projectmemo.task.revokeTip"));
                     uiButtons.add(unclaim);
                     bx += 62;
                 }
             } else if ("done".equals(t.status) && mgr) {
-                UiKit.UiButton reopen = new UiKit.UiButton(bx, by, 44, 16, "重开", () ->
+                UiKit.UiButton reopen = new UiKit.UiButton(bx, by, 44, 16, L10n.get("projectmemo.task.reopen"), () ->
                         MemoClientState.sendAction("task_reopen", MemoClientState.argsOf("task", t.id)));
                 uiButtons.add(reopen);
                 bx += 48;
             }
             if (mgr) {
                 final int backTo = pr.id;
-                UiKit.UiButton del = new UiKit.UiButton(bx, by, 44, 16, "删除", () ->
-                        this.minecraft.setScreen(new MemoConfirmDialog(this, "删除子任务",
-                                "删除「" + t.title + "」？", true,
+                UiKit.UiButton del = new UiKit.UiButton(bx, by, 44, 16, L10n.get("projectmemo.common.delete"), () ->
+                        this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.task.deleteTitle"),
+                                L10n.get("projectmemo.task.deleteMsg", t.title), true,
                                 () -> {
                                     MemoClientState.sendAction("delete_task", MemoClientState.argsOf("task", t.id));
                                     this.minecraft.setScreen(new ProjectDetailScreen(backTo, 1));
@@ -234,7 +234,7 @@ public final class TaskDetailScreen extends MemoScreenBase {
                 uiButtons.add(del);
             }
         }
-        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by, 52, 16, "返回工程", () ->
+        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by, 52, 16, L10n.get("projectmemo.task.backToProject"), () ->
                 this.minecraft.setScreen(new ProjectDetailScreen(pr.id, 1)));
         uiButtons.add(back);
     }

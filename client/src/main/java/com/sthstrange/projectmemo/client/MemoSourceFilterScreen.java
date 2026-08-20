@@ -33,7 +33,7 @@ public final class MemoSourceFilterScreen extends MemoScreenBase {
     }
 
     public MemoSourceFilterScreen(int projectId) {
-        super("材料筛选");
+        super(L10n.get("projectmemo.filter.title"));
         this.projectId = projectId;
         Set<String> s = MemoClientState.getMatFilter(projectId);
         selSources = s == null ? null : new LinkedHashSet<>(s);
@@ -42,14 +42,14 @@ public final class MemoSourceFilterScreen extends MemoScreenBase {
     }
 
     private static String srcLabel(String src) {
-        return "custom".equals(src) ? "手动添加" : src;
+        return "custom".equals(src) ? L10n.get("projectmemo.filter.customSource") : src;
     }
 
     private void buildEntries() {
         entries.clear();
         MemoData data = MemoClientState.data();
         // 来源分类
-        Entry hs = new Entry(); hs.header = true; hs.section = "source"; hs.label = "按投影来源"; entries.add(hs);
+        Entry hs = new Entry(); hs.header = true; hs.section = "source"; hs.label = L10n.get("projectmemo.filter.bySource"); entries.add(hs);
         Set<String> sources = new LinkedHashSet<>();
         for (MemoData.MaterialRow m : data.materialsOf(projectId)) {
             sources.add(m.source == null || m.source.isEmpty() ? "custom" : m.source);
@@ -58,7 +58,7 @@ public final class MemoSourceFilterScreen extends MemoScreenBase {
             Entry e = new Entry(); e.section = "source"; e.value = src; e.label = srcLabel(src); entries.add(e);
         }
         // 认领分类
-        Entry hc = new Entry(); hc.header = true; hc.section = "claimer"; hc.label = "按认领玩家"; entries.add(hc);
+        Entry hc = new Entry(); hc.header = true; hc.section = "claimer"; hc.label = L10n.get("projectmemo.filter.byClaimer"); entries.add(hc);
         Set<String> claimers = new LinkedHashSet<>();
         for (MemoData.Task t : data.tasksOf(projectId)) {
             if ("collect".equals(t.type) && !"done".equals(t.status) && !t.assignee.isEmpty()) claimers.add(t.assignee);
@@ -66,7 +66,7 @@ public final class MemoSourceFilterScreen extends MemoScreenBase {
         for (String c : claimers) {
             Entry e = new Entry(); e.section = "claimer"; e.value = c; e.label = c; entries.add(e);
         }
-        Entry un = new Entry(); un.section = "claimer"; un.value = UNCLAIMED; un.label = "未认领"; entries.add(un);
+        Entry un = new Entry(); un.section = "claimer"; un.value = UNCLAIMED; un.label = L10n.get("projectmemo.filter.unclaimed"); entries.add(un);
     }
 
     private boolean isSelected(Entry e) {
@@ -100,7 +100,7 @@ public final class MemoSourceFilterScreen extends MemoScreenBase {
         int x0 = (this.width - panelW) / 2;
         int y0 = (this.height - panelH) / 2;
         UiKit.panel(g, x0, y0, panelW, panelH);
-        g.drawString(this.font, "材料筛选 · 勾选要显示的条目", x0 + 10, y0 + 8, UiKit.TEXT, false);
+        g.drawString(this.font, L10n.get("projectmemo.filter.hint"), x0 + 10, y0 + 8, UiKit.TEXT, false);
 
         listLeft = x0 + 8;
         listRight = x0 + panelW - 8;
@@ -116,11 +116,11 @@ public final class MemoSourceFilterScreen extends MemoScreenBase {
             Entry e = entries.get(i);
             if (e.header) {
                 g.drawString(this.font, "— " + e.label + " —", listLeft + 6, rowY + 5, UiKit.GOLD, false);
-                UiKit.UiButton allSec = new UiKit.UiButton(listRight - 78, rowY + 1, 34, 14, "全选", () -> {
+                UiKit.UiButton allSec = new UiKit.UiButton(listRight - 78, rowY + 1, 34, 14, L10n.get("projectmemo.common.selectAll"), () -> {
                     if ("source".equals(e.section)) selSources = null; else selClaimers = null;
                 });
                 uiButtons.add(allSec);
-                UiKit.UiButton noneSec = new UiKit.UiButton(listRight - 40, rowY + 1, 38, 14, "全不选", () -> {
+                UiKit.UiButton noneSec = new UiKit.UiButton(listRight - 40, rowY + 1, 38, 14, L10n.get("projectmemo.common.selectNone"), () -> {
                     if ("source".equals(e.section)) selSources = new LinkedHashSet<>();
                     else selClaimers = new LinkedHashSet<>();
                 });
@@ -138,14 +138,14 @@ public final class MemoSourceFilterScreen extends MemoScreenBase {
         UiKit.scrollbar(g, listRight + 1, listTop, listBottom - listTop, scroll, maxScroll);
 
         int by = y0 + panelH - 24;
-        g.drawString(this.font, "勾选为暂存，点确认才生效", x0 + 10, by + 4, UiKit.FAINT, false);
-        UiKit.UiButton confirm = new UiKit.UiButton(x0 + panelW - 104, by, 48, 16, "确认", () -> {
+        g.drawString(this.font, L10n.get("projectmemo.filter.stagedHint"), x0 + 10, by + 4, UiKit.FAINT, false);
+        UiKit.UiButton confirm = new UiKit.UiButton(x0 + panelW - 104, by, 48, 16, L10n.get("projectmemo.common.confirm"), () -> {
             MemoClientState.setMatFilter(projectId, selSources);
             MemoClientState.setMatClaimFilter(projectId, selClaimers);
             this.minecraft.setScreen(new ProjectDetailScreen(projectId, 3));
         });
         uiButtons.add(confirm);
-        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 52, by, 44, 16, "返回", () ->
+        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 52, by, 44, 16, L10n.get("projectmemo.common.back"), () ->
                 this.minecraft.setScreen(new ProjectDetailScreen(projectId, 3)));
         uiButtons.add(back);
     }

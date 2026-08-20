@@ -63,7 +63,7 @@ public final class MemoLocal {
         snap.add("perms", perms);
         snap.add("data", store);
         MemoClientState.applySnapshot(snap);
-        MemoToast.push("单人本地备忘录模式（数据随世界保存）", MemoToast.GREEN);
+        MemoToast.push(L10n.get("projectmemo.local.enterToast"), MemoToast.GREEN);
     }
 
     public static void exitLocal() { active = false; }
@@ -218,7 +218,7 @@ public final class MemoLocal {
             switch (op) {
                 case "list_imports": return ok("[]");
                 case "request_sync": return ok();
-                case "import_schematic": return fail("单人档没有共享投影库，请用「本地投影」导入");
+                case "import_schematic": return fail(L10n.get("projectmemo.local.noShared"));
                 case "create_project": return createProject(a);
                 case "edit_project": return editProject(a);
                 case "delete_project": return deleteProject(a);
@@ -252,10 +252,10 @@ public final class MemoLocal {
                 case "material_set_need": return materialSetNeed(a);
                 case "schematic_delete": return schematicDelete(a);
                 case "import_materials": return importMaterials(a);
-                default: return fail("单人模式暂不支持操作 " + op);
+                default: return fail(L10n.get("projectmemo.local.unsupportedOp", op));
             }
         } catch (Exception e) {
-            return fail("本地处理异常: " + e.getClass().getSimpleName());
+            return fail(L10n.get("projectmemo.local.exception", e.getClass().getSimpleName()));
         }
     }
 
@@ -263,8 +263,8 @@ public final class MemoLocal {
 
     private static JsonObject createProject(JsonObject a) {
         String title = optStr(a, "title").trim();
-        if (title.isEmpty()) return fail("工程标题不能为空");
-        if (title.length() > 30) return fail("标题最长 30 字");
+        if (title.isEmpty()) return fail(L10n.get("projectmemo.err.projectTitleEmpty"));
+        if (title.length() > 30) return fail(L10n.get("projectmemo.err.titleMax30"));
         JsonObject pr = new JsonObject();
         pr.addProperty("id", nextId(projects()));
         pr.addProperty("title", title);
@@ -289,21 +289,21 @@ public final class MemoLocal {
 
     private static JsonObject editProject(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         String field = optStr(a, "field");
         String value = optStr(a, "value");
         switch (field) {
             case "title":
-                if (value.trim().isEmpty()) return fail("标题不能为空");
+                if (value.trim().isEmpty()) return fail(L10n.get("projectmemo.err.titleEmpty"));
                 pr.addProperty("title", value.trim());
                 break;
             case "desc": pr.addProperty("desc", value); break;
             case "note": pr.addProperty("buildNote", value); break;
             case "status":
                 if ("planning".equals(value) || "active".equals(value)) pr.addProperty("status", value);
-                else return fail("无效状态");
+                else return fail(L10n.get("projectmemo.err.badStatus"));
                 break;
-            default: return fail("未知字段 " + field);
+            default: return fail(L10n.get("projectmemo.err.unknownField", field));
         }
         refresh();
         return ok();
@@ -311,7 +311,7 @@ public final class MemoLocal {
 
     private static JsonObject deleteProject(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         int id = optInt(pr, "id");
         projects().remove(pr);
         removeFrom(tasks(), e -> e.isJsonObject() && optInt(e.getAsJsonObject(), "projectId") == id);
@@ -322,7 +322,7 @@ public final class MemoLocal {
 
     private static JsonObject setStatus(JsonObject a, String status, boolean stampDone) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         pr.addProperty("status", status);
         pr.addProperty("completedAt", stampDone ? now() : 0);
         refresh();
@@ -331,16 +331,16 @@ public final class MemoLocal {
 
     private static JsonObject setManagers(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         String name = optStr(a, "name").trim();
-        if (name.isEmpty()) return fail("玩家名不能为空");
+        if (name.isEmpty()) return fail(L10n.get("projectmemo.err.nameEmpty"));
         boolean add = !a.has("add") || a.get("add").getAsBoolean();
         JsonArray mgrs = pr.has("managers") ? pr.getAsJsonArray("managers") : new JsonArray();
         if (add) {
-            for (JsonElement e : mgrs) if (e.getAsString().equalsIgnoreCase(name)) return fail(name + " 已是管理者");
+            for (JsonElement e : mgrs) if (e.getAsString().equalsIgnoreCase(name)) return fail(L10n.get("projectmemo.err.alreadyManager", name));
             mgrs.add(name);
         } else {
-            if (name.equalsIgnoreCase(optStr(pr, "creator"))) return fail("创建者默认是管理者，不可移除");
+            if (name.equalsIgnoreCase(optStr(pr, "creator"))) return fail(L10n.get("projectmemo.err.creatorManager"));
             removeFrom(mgrs, e -> e.getAsString().equalsIgnoreCase(name));
         }
         pr.add("managers", mgrs);
@@ -350,12 +350,12 @@ public final class MemoLocal {
 
     private static JsonObject participants(JsonObject a, boolean add) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         String name = optStr(a, "name").trim();
-        if (name.isEmpty()) return fail("玩家名不能为空");
+        if (name.isEmpty()) return fail(L10n.get("projectmemo.err.nameEmpty"));
         JsonArray parts = pr.has("participants") ? pr.getAsJsonArray("participants") : new JsonArray();
         if (add) {
-            for (JsonElement e : parts) if (e.getAsString().equalsIgnoreCase(name)) return fail(name + " 已在参与玩家中");
+            for (JsonElement e : parts) if (e.getAsString().equalsIgnoreCase(name)) return fail(L10n.get("projectmemo.err.alreadyParticipant", name));
             parts.add(name);
         } else {
             boolean[] removed = {false};
@@ -363,7 +363,7 @@ public final class MemoLocal {
                 if (e.getAsString().equalsIgnoreCase(name)) { removed[0] = true; return true; }
                 return false;
             });
-            if (!removed[0]) return fail("找不到参与玩家 " + name);
+            if (!removed[0]) return fail(L10n.get("projectmemo.err.participantNotFound", name));
         }
         pr.add("participants", parts);
         refresh();
@@ -374,7 +374,7 @@ public final class MemoLocal {
 
     private static JsonObject setLocation(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         JsonObject loc = new JsonObject();
         loc.addProperty("world", playerDim());
         loc.addProperty("x", optInt(a, "x"));
@@ -394,7 +394,7 @@ public final class MemoLocal {
 
     private static JsonObject toggleLocHidden(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         JsonObject loc = pr.has("location") ? pr.getAsJsonObject("location") : new JsonObject();
         loc.addProperty("hidden", !optBool(loc, "hidden"));
         pr.add("location", loc);
@@ -404,7 +404,7 @@ public final class MemoLocal {
 
     private static JsonObject setLocLock(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         JsonObject loc = pr.has("location") ? pr.getAsJsonObject("location") : new JsonObject();
         loc.addProperty("locked", !a.has("locked") || a.get("locked").getAsBoolean());
         pr.add("location", loc);
@@ -414,7 +414,7 @@ public final class MemoLocal {
 
     private static JsonObject clearLocation(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         pr.remove("location");
         refresh();
         return ok();
@@ -422,16 +422,16 @@ public final class MemoLocal {
 
     private static JsonObject setDepositCorner(JsonObject a, int corner) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         JsonObject dep = pr.has("depositArea") ? pr.getAsJsonObject("depositArea") : new JsonObject();
-        if (dep.has("locked") && optBool(dep, "locked")) return fail("收集区域已锁定，请先解锁再改角点");
+        if (dep.has("locked") && optBool(dep, "locked")) return fail(L10n.get("projectmemo.err.depLocked"));
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return fail("找不到玩家位置");
+        if (mc.player == null) return fail(L10n.get("projectmemo.err.playerPosNotFound"));
         int x = mc.player.getBlockX(), y = mc.player.getBlockY(), z = mc.player.getBlockZ();
         String dim = playerDim();
         boolean worldChanged = dep.has("world") && !optStr(dep, "world").isEmpty() && !optStr(dep, "world").equals(dim);
         if (worldChanged && corner == 2)
-            return fail("收集区域必须在同一世界（角点 A 在 " + optStr(dep, "world") + "）");
+            return fail(L10n.get("projectmemo.err.depWorldMismatch", optStr(dep, "world")));
         dep.addProperty("world", dim);
         if (corner == 1) {
             dep.addProperty("x1", x); dep.addProperty("y1", y); dep.addProperty("z1", z);
@@ -441,13 +441,13 @@ public final class MemoLocal {
         dep.addProperty("locked", optBool(dep, "locked"));
         pr.add("depositArea", dep);
         refresh();
-        if (corner == 1 && worldChanged) return ok("区域已切换到当前世界，角点 B 需要重新设置");
-        return ok(corner == 1 ? "角点 A 已设为脚下" : "角点 B 已设为脚下");
+        if (corner == 1 && worldChanged) return ok(L10n.get("projectmemo.local.areaWorldSwitched"));
+        return ok(corner == 1 ? L10n.get("projectmemo.local.cornerASet") : L10n.get("projectmemo.local.cornerBSet"));
     }
 
     private static JsonObject clearDeposit(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         pr.remove("depositArea");
         refresh();
         return ok();
@@ -455,7 +455,7 @@ public final class MemoLocal {
 
     private static JsonObject setDepLock(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         JsonObject dep = pr.has("depositArea") ? pr.getAsJsonObject("depositArea") : new JsonObject();
         dep.addProperty("locked", !a.has("locked") || a.get("locked").getAsBoolean());
         pr.add("depositArea", dep);
@@ -466,24 +466,24 @@ public final class MemoLocal {
     /** 核验：在内置服务器线程扫描区域容器，回主线程更新进度并自动判定收集任务 */
     private static JsonObject checkDeposit(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
-        if (!pr.has("depositArea")) return fail("还没有设置收集区域（先设两个角点）");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
+        if (!pr.has("depositArea")) return fail(L10n.get("projectmemo.err.noDepositArea"));
         JsonObject dep = pr.getAsJsonObject("depositArea");
         String dim = optStr(dep, "world");
-        if (dim.isEmpty()) return fail("还没有设置收集区域（先设两个角点）");
+        if (dim.isEmpty()) return fail(L10n.get("projectmemo.err.noDepositArea"));
         int minX = Math.min(optInt(dep, "x1"), optInt(dep, "x2")), maxX = Math.max(optInt(dep, "x1"), optInt(dep, "x2"));
         int minY = Math.min(optInt(dep, "y1"), optInt(dep, "y2")), maxY = Math.max(optInt(dep, "y1"), optInt(dep, "y2"));
         int minZ = Math.min(optInt(dep, "z1"), optInt(dep, "z2")), maxZ = Math.max(optInt(dep, "z1"), optInt(dep, "z2"));
         long volume = (long) (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
-        if (volume <= 0) return fail("区域无效（两个角点不能相同面）");
-        if (volume > 4096) return fail("区域太大（" + volume + " 方块，上限 4096）");
+        if (volume <= 0) return fail(L10n.get("projectmemo.err.depInvalid"));
+        if (volume > 4096) return fail(L10n.get("projectmemo.err.depTooBig", volume));
         IntegratedServer server = Minecraft.getInstance().getSingleplayerServer();
-        if (server == null) return fail("单人服务器不可用");
+        if (server == null) return fail(L10n.get("projectmemo.err.localServerUnavailable"));
         ServerLevel level;
         try {
             level = server.getLevel(ResourceKey.create(Registries.DIMENSION, Identifier.parse(dim)));
-        } catch (Exception e) { return fail("区域世界解析失败"); }
-        if (level == null) return fail("区域所在世界不存在: " + dim);
+        } catch (Exception e) { return fail(L10n.get("projectmemo.err.depWorldParseFail")); }
+        if (level == null) return fail(L10n.get("projectmemo.err.depWorldMissing", dim));
         final int pid = optInt(pr, "id");
         final int fx1 = minX, fx2 = maxX, fy1 = minY, fy2 = maxY, fz1 = minZ, fz2 = maxZ;
         server.execute(() -> {
@@ -550,24 +550,24 @@ public final class MemoLocal {
                         autoDone.add(optStr(t, "title"));
                     }
                 }
-                StringBuilder msg = new StringBuilder("核验完成：区域物品 " + total + " 件，更新 " + updated + " 行进度");
-                if (!autoDone.isEmpty()) msg.append("；收集任务自动完成: ").append(String.join("、", autoDone));
+                StringBuilder msg = new StringBuilder(L10n.get("projectmemo.local.verifyDone", total, updated));
+                if (!autoDone.isEmpty()) msg.append(L10n.get("projectmemo.local.autoDone", String.join(L10n.get("projectmemo.common.listSep"), autoDone)));
                 refresh();
                 MemoToast.push(msg.toString(), MemoToast.GREEN);
             });
         });
-        return ok("正在核验区域容器…");
+        return ok(L10n.get("projectmemo.local.verifying"));
     }
 
     // ───────────────────────── 子任务 ─────────────────────────
 
     private static JsonObject createTask(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
-        if (!editable(pr)) return fail("工程已竣工/归档，不能再添加");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
+        if (!editable(pr)) return fail(L10n.get("projectmemo.err.projectFrozenAdd"));
         String title = optStr(a, "title").trim();
-        if (title.isEmpty()) return fail("子任务标题不能为空");
-        if (title.length() > 40) return fail("标题最长 40 字");
+        if (title.isEmpty()) return fail(L10n.get("projectmemo.err.taskTitleEmpty"));
+        if (title.length() > 40) return fail(L10n.get("projectmemo.err.titleMax40"));
         JsonObject t = baseTask(optInt(pr, "id"));
         t.addProperty("title", title);
         tasks().add(t);
@@ -598,26 +598,26 @@ public final class MemoLocal {
 
     private static JsonObject createCollectTask(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
-        if (!editable(pr)) return fail("工程已竣工/归档，不能再添加");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
+        if (!editable(pr)) return fail(L10n.get("projectmemo.err.projectFrozenAdd"));
         String title = optStr(a, "title").trim();
-        if (title.isEmpty()) return fail("请给收集任务取个名字");
-        if (title.length() > 40) return fail("任务名最长 40 字");
+        if (title.isEmpty()) return fail(L10n.get("projectmemo.collect.needName"));
+        if (title.length() > 40) return fail(L10n.get("projectmemo.err.collectNameMax40"));
         if (!a.has("materials") || !a.get("materials").isJsonArray() || a.getAsJsonArray("materials").isEmpty())
-            return fail("请至少勾选一项材料");
+            return fail(L10n.get("projectmemo.err.pickAtLeastOne"));
         JsonArray mats = a.getAsJsonArray("materials");
-        if (mats.size() > 50) return fail("单个收集任务最多 50 项材料");
+        if (mats.size() > 50) return fail(L10n.get("projectmemo.err.collectMax50"));
         int pid = optInt(pr, "id");
         java.util.Set<Integer> seen = new java.util.LinkedHashSet<>();
         for (JsonElement e : mats) {
             int mid = e.getAsInt();
             if (!seen.add(mid)) continue;
             JsonObject m = materialById(mid);
-            if (m == null || optInt(m, "projectId") != pid) return fail("材料行 #" + mid + " 不存在");
+            if (m == null || optInt(m, "projectId") != pid) return fail(L10n.get("projectmemo.err.materialRowNotFound", mid));
             if (m.get("need").getAsLong() > 0 && m.get("delivered").getAsLong() >= m.get("need").getAsLong())
-                return fail("「" + itemNameOf(m) + "」已收集完成，无需再认领");
+                return fail(L10n.get("projectmemo.err.alreadyCollected", itemNameOf(m)));
             JsonObject covering = coveringCollectTask(pid, mid);
-            if (covering != null) return fail("「" + itemNameOf(m) + "」已有收集任务，认领人: " + optStr(covering, "assignee"));
+            if (covering != null) return fail(L10n.get("projectmemo.err.hasCollectTask", itemNameOf(m), optStr(covering, "assignee")));
         }
         JsonObject t = baseTask(pid);
         t.addProperty("title", title);
@@ -631,7 +631,7 @@ public final class MemoLocal {
         t.addProperty("claimedAt", now());
         tasks().add(t);
         refresh();
-        return ok("已创建并认领收集任务「" + title + "」（" + seen.size() + " 项材料）");
+        return ok(L10n.get("projectmemo.local.collectCreated", title, seen.size()));
     }
 
     private static JsonObject coveringCollectTask(int projectId, int materialId) {
@@ -656,8 +656,8 @@ public final class MemoLocal {
 
     private static JsonObject claim(JsonObject a) {
         JsonObject t = taskOf(a);
-        if (t == null) return fail("找不到子任务");
-        if (!"open".equals(optStr(t, "status"))) return fail("该任务已被认领");
+        if (t == null) return fail(L10n.get("projectmemo.err.taskNotFound"));
+        if (!"open".equals(optStr(t, "status"))) return fail(L10n.get("projectmemo.err.taskAlreadyClaimed"));
         t.addProperty("status", "claimed");
         t.addProperty("assignee", playerName());
         t.addProperty("assigneeUuid", playerUuid());
@@ -668,8 +668,8 @@ public final class MemoLocal {
 
     private static JsonObject unclaim(JsonObject a) {
         JsonObject t = taskOf(a);
-        if (t == null) return fail("找不到子任务");
-        if (!"claimed".equals(optStr(t, "status"))) return fail("该任务未被认领");
+        if (t == null) return fail(L10n.get("projectmemo.err.taskNotFound"));
+        if (!"claimed".equals(optStr(t, "status"))) return fail(L10n.get("projectmemo.err.taskNotClaimed"));
         t.addProperty("status", "open");
         t.addProperty("assignee", "");
         t.addProperty("assigneeUuid", "");
@@ -680,8 +680,8 @@ public final class MemoLocal {
 
     private static JsonObject taskDone(JsonObject a) {
         JsonObject t = taskOf(a);
-        if (t == null) return fail("找不到子任务");
-        if ("done".equals(optStr(t, "status"))) return fail("该任务已完成");
+        if (t == null) return fail(L10n.get("projectmemo.err.taskNotFound"));
+        if ("done".equals(optStr(t, "status"))) return fail(L10n.get("projectmemo.err.taskAlreadyDone"));
         t.addProperty("status", "done");
         t.addProperty("doneAt", now());
         refresh();
@@ -690,8 +690,8 @@ public final class MemoLocal {
 
     private static JsonObject taskReopen(JsonObject a) {
         JsonObject t = taskOf(a);
-        if (t == null) return fail("找不到子任务");
-        if (!"done".equals(optStr(t, "status"))) return fail("该任务未完成");
+        if (t == null) return fail(L10n.get("projectmemo.err.taskNotFound"));
+        if (!"done".equals(optStr(t, "status"))) return fail(L10n.get("projectmemo.err.taskNotDone"));
         t.addProperty("status", optStr(t, "assignee").isEmpty() ? "open" : "claimed");
         t.addProperty("doneAt", 0);
         refresh();
@@ -700,7 +700,7 @@ public final class MemoLocal {
 
     private static JsonObject deleteTask(JsonObject a) {
         JsonObject t = taskOf(a);
-        if (t == null) return fail("找不到子任务");
+        if (t == null) return fail(L10n.get("projectmemo.err.taskNotFound"));
         tasks().remove(t);
         refresh();
         return ok();
@@ -708,9 +708,9 @@ public final class MemoLocal {
 
     private static JsonObject taskSetNote(JsonObject a) {
         JsonObject t = taskOf(a);
-        if (t == null) return fail("找不到子任务");
+        if (t == null) return fail(L10n.get("projectmemo.err.taskNotFound"));
         String note = optStr(a, "note").trim();
-        if (note.length() > 200) return fail("说明最长 200 字");
+        if (note.length() > 200) return fail(L10n.get("projectmemo.err.noteMax200"));
         t.addProperty("note", note);
         refresh();
         return ok();
@@ -718,10 +718,10 @@ public final class MemoLocal {
 
     private static JsonObject taskRename(JsonObject a) {
         JsonObject t = taskOf(a);
-        if (t == null) return fail("找不到子任务");
+        if (t == null) return fail(L10n.get("projectmemo.err.taskNotFound"));
         String title = optStr(a, "title").trim();
-        if (title.isEmpty()) return fail("标题不能为空");
-        if (title.length() > 40) return fail("标题最长 40 字");
+        if (title.isEmpty()) return fail(L10n.get("projectmemo.err.titleEmpty"));
+        if (title.length() > 40) return fail(L10n.get("projectmemo.err.titleMax40"));
         t.addProperty("title", title);
         refresh();
         return ok();
@@ -731,12 +731,12 @@ public final class MemoLocal {
 
     private static JsonObject materialAdd(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
-        if (!editable(pr)) return fail("工程已竣工/归档");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
+        if (!editable(pr)) return fail(L10n.get("projectmemo.err.projectFrozen"));
         String item = optStr(a, "item");
         long need = a.has("need") ? a.get("need").getAsLong() : 0;
-        if (item.isEmpty()) return fail("无效物品");
-        if (need <= 0 || need > 10_000_000) return fail("需求数量需在 1~1000 万");
+        if (item.isEmpty()) return fail(L10n.get("projectmemo.err.badItem"));
+        if (need <= 0 || need > 10_000_000) return fail(L10n.get("projectmemo.err.amountRange"));
         int pid = optInt(pr, "id");
         for (JsonElement e : materials()) {
             if (!e.isJsonObject()) continue;
@@ -744,7 +744,7 @@ public final class MemoLocal {
             if (optInt(m, "projectId") == pid && item.equals(optStr(m, "item")) && "custom".equals(optStr(m, "source"))) {
                 m.addProperty("need", m.get("need").getAsLong() + need);
                 refresh();
-                return ok("已合并到已有的同名材料行");
+                return ok(L10n.get("projectmemo.local.mergedRow"));
             }
         }
         JsonObject m = new JsonObject();
@@ -765,7 +765,7 @@ public final class MemoLocal {
 
     private static JsonObject materialRemove(JsonObject a) {
         JsonObject m = materialOf(a);
-        if (m == null) return fail("找不到材料行");
+        if (m == null) return fail(L10n.get("projectmemo.err.materialNotFound"));
         materials().remove(m);
         refresh();
         return ok();
@@ -773,9 +773,9 @@ public final class MemoLocal {
 
     private static JsonObject materialSetNeed(JsonObject a) {
         JsonObject m = materialOf(a);
-        if (m == null) return fail("找不到材料行");
+        if (m == null) return fail(L10n.get("projectmemo.err.materialNotFound"));
         long need = a.has("need") ? a.get("need").getAsLong() : 0;
-        if (need <= 0 || need > 10_000_000) return fail("需求数量需在 1~1000 万");
+        if (need <= 0 || need > 10_000_000) return fail(L10n.get("projectmemo.err.amountRange"));
         m.addProperty("need", need);
         refresh();
         return ok();
@@ -785,11 +785,11 @@ public final class MemoLocal {
 
     private static JsonObject schematicDelete(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         int idx = optInt(a, "idx");
-        if (!pr.has("schematics") || !pr.get("schematics").isJsonArray()) return fail("投影记录不存在");
+        if (!pr.has("schematics") || !pr.get("schematics").isJsonArray()) return fail(L10n.get("projectmemo.err.schematicNotFound"));
         JsonArray sch = pr.getAsJsonArray("schematics");
-        if (idx < 0 || idx >= sch.size()) return fail("投影记录不存在");
+        if (idx < 0 || idx >= sch.size()) return fail(L10n.get("projectmemo.err.schematicNotFound"));
         JsonObject rec = sch.get(idx).getAsJsonObject();
         String name = optStr(rec, "name");
         sch.remove(idx);
@@ -805,16 +805,16 @@ public final class MemoLocal {
             }
         }
         refresh();
-        return ok("已删除投影「" + name + "」及其 " + removed + " 行材料");
+        return ok(L10n.get("projectmemo.local.schematicDeleted", name, removed));
     }
 
     /** 本地投影导入（客户端已解析好 items）：同物品+同来源合并，记录投影条目 */
     private static JsonObject importMaterials(JsonObject a) {
         JsonObject pr = projectOf(a);
-        if (pr == null) return fail("找不到工程");
-        if (!editable(pr)) return fail("工程已竣工/归档，需先解档");
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
+        if (!editable(pr)) return fail(L10n.get("projectmemo.err.projectFrozenUnarchive"));
         if (!a.has("items") || !a.get("items").isJsonArray() || a.getAsJsonArray("items").isEmpty())
-            return fail("没有可导入的材料");
+            return fail(L10n.get("projectmemo.err.noImportableMaterials"));
         String name = optStr(a, "name");
         String src = name.isEmpty() ? "custom" : name;
         int pid = optInt(pr, "id");
@@ -855,7 +855,7 @@ public final class MemoLocal {
             }
         }
         JsonObject rec = new JsonObject();
-        rec.addProperty("name", name.isEmpty() ? "本地投影" : name);
+        rec.addProperty("name", name.isEmpty() ? L10n.get("projectmemo.local.defaultSchematicName") : name);
         rec.addProperty("source", "local");
         rec.addProperty("file", name);
         rec.addProperty("by", playerName());
@@ -872,8 +872,8 @@ public final class MemoLocal {
         if (!pr.has("schematics") || !pr.get("schematics").isJsonArray()) pr.add("schematics", new JsonArray());
         pr.getAsJsonArray("schematics").add(rec);
         refresh();
-        StringBuilder sb = new StringBuilder("导入完成：新增 " + added + " 行");
-        if (merged > 0) sb.append("，合并 ").append(merged).append(" 行");
+        StringBuilder sb = new StringBuilder(L10n.get("projectmemo.local.importDone", added));
+        if (merged > 0) sb.append(L10n.get("projectmemo.local.importMerged", merged));
         return ok(sb.toString());
     }
 }

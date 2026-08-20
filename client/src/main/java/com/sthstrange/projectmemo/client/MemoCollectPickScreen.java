@@ -25,7 +25,7 @@ public final class MemoCollectPickScreen extends MemoScreenBase {
     private EditBox nameBox;
 
     public MemoCollectPickScreen(int projectId) {
-        super("添加材料收集任务");
+        super(L10n.get("projectmemo.collect.title"));
         this.projectId = projectId;
     }
 
@@ -34,7 +34,7 @@ public final class MemoCollectPickScreen extends MemoScreenBase {
         int panelW = Math.min(400, this.width - 20);
         int x0 = (this.width - panelW) / 2;
         int y0 = (this.height - Math.min(320, this.height - 20)) / 2;
-        nameBox = addEditBox(new EditBox(this.font, x0 + 60, y0 + 24, panelW - 72, 16, Component.literal("任务名")));
+        nameBox = addEditBox(new EditBox(this.font, x0 + 60, y0 + 24, panelW - 72, 16, Component.literal(L10n.get("projectmemo.collect.nameField"))));
         nameBox.setMaxLength(40);
         nameBox.setFocused(true);
     }
@@ -63,8 +63,8 @@ public final class MemoCollectPickScreen extends MemoScreenBase {
         int y0 = (this.height - panelH) / 2;
         UiKit.panel(g, x0, y0, panelW, panelH);
 
-        g.drawString(this.font, "勾选要收集的材料（可多选），取个任务名", x0 + 10, y0 + 8, UiKit.TEXT, false);
-        g.drawString(this.font, "任务名:", x0 + 10, y0 + 28, UiKit.DIM, false);
+        g.drawString(this.font, L10n.get("projectmemo.collect.hint"), x0 + 10, y0 + 8, UiKit.TEXT, false);
+        g.drawString(this.font, L10n.get("projectmemo.collect.nameLabel"), x0 + 10, y0 + 28, UiKit.DIM, false);
 
         listLeft = x0 + 8;
         listRight = x0 + panelW - 8;
@@ -75,7 +75,7 @@ public final class MemoCollectPickScreen extends MemoScreenBase {
         scroll = clampScroll(scroll, maxScroll);
 
         if (pickable.isEmpty()) {
-            g.drawString(this.font, "（没有可认领的材料：都已完成或已被认领）", x0 + 12, listTop + 8, UiKit.FAINT, false);
+            g.drawString(this.font, L10n.get("projectmemo.collect.noneLeft"), x0 + 12, listTop + 8, UiKit.FAINT, false);
         }
 
         g.enableScissor(listLeft, listTop, listRight, listBottom);
@@ -97,23 +97,23 @@ public final class MemoCollectPickScreen extends MemoScreenBase {
             g.drawString(this.font, UiKit.truncPx(this.font, zh, 130), x, rowY + 6, UiKit.TEXT, false);
             x += 136;
             long rem = Math.max(0, m.need - m.delivered);
-            g.drawString(this.font, "还差 " + UiKit.fmtAmount(rem, st), x, rowY + 6, UiKit.DIM, false);
+            g.drawString(this.font, L10n.get("projectmemo.collect.remaining", UiKit.fmtAmount(rem, st)), x, rowY + 6, UiKit.DIM, false);
         }
         g.disableScissor();
         UiKit.scrollbar(g, listRight + 1, listTop, listBottom - listTop, scroll, maxScroll);
 
         int by = y0 + panelH - 24;
         UiKit.UiButton all = new UiKit.UiButton(x0 + 10, by, 44, 16,
-                selected.size() == pickable.size() && !pickable.isEmpty() ? "全不选" : "全选", () -> {
+                selected.size() == pickable.size() && !pickable.isEmpty() ? L10n.get("projectmemo.common.selectNone") : L10n.get("projectmemo.common.selectAll"), () -> {
                     if (selected.size() == pickable.size()) selected.clear();
                     else for (MemoData.MaterialRow m : pickable) selected.add(m.id);
                 });
         uiButtons.add(all);
         UiKit.UiButton confirm = new UiKit.UiButton(x0 + panelW - 160, by, 104, 16,
-                "确定认领 (" + selected.size() + " 项)", selected.isEmpty() ? null : this::confirm);
+                L10n.get("projectmemo.collect.confirmN", selected.size()), selected.isEmpty() ? null : this::confirm);
         if (selected.isEmpty()) confirm.disabled();
         uiButtons.add(confirm);
-        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 52, by, 44, 16, "返回", () ->
+        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 52, by, 44, 16, L10n.get("projectmemo.common.back"), () ->
                 this.minecraft.setScreen(new ProjectDetailScreen(projectId, 1)));
         uiButtons.add(back);
     }
@@ -121,7 +121,7 @@ public final class MemoCollectPickScreen extends MemoScreenBase {
     private void confirm() {
         String name = nameBox == null ? "" : nameBox.getValue().trim();
         if (name.isEmpty()) {
-            MemoToast.push("请给收集任务取个名字", MemoToast.RED);
+            MemoToast.push(L10n.get("projectmemo.collect.needName"), MemoToast.RED);
             return;
         }
         com.google.gson.JsonObject args = MemoClientState.argsOf("project", projectId);

@@ -59,6 +59,10 @@
 - [调研报告](docs/minecraft-memo-plugin-research.md)
 - [测试手册](docs/project-memo-test-manual-v0.9.md)（12 章回归用例）
 
+## 本地化
+
+UI 已全量国际化：**简体中文 / 繁体中文 / 文言文**显示中文界面，其他语言自动使用英文——跟随 Minecraft 客户端语言设置，无需任何配置。服务端插件的消息由客户端内置映射表翻译（`ServerErrors`），服务端无需改动。
+
 ## 许可
 
 [MIT](LICENSE)。第三方组件声明见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
@@ -72,6 +76,7 @@ A **project-coordination memo system** for technical Minecraft communities: proj
 - **Server plugin** (Paper/Leaves 1.21.x) is the single source of truth; the **Fabric client mod** (masa-style panels, hotkey `J`) is the main editing UI. Mod-less players get a read-only chat UI (`/memo`).
 - **Works in singleplayer** too: built-in local backend, data stored inside the world save.
 - Optional **Redis mirror mode**: other servers (e.g. a creative server) can run read-only mirrors with live sync.
+- **Fully localized UI**: Simplified/Traditional Chinese and Classical Chinese show the Chinese interface; all other languages automatically use English (follows the Minecraft client language, zero config). Server plugin messages are translated client-side via a built-in mapping table — no server-side changes needed.
 - Integrations: Markdown wiki export, `[MEMO-EVENT]` console lines (project created/completed/deleted) for chat bots, LuckPerms permission nodes plus per-project manager lists (data-driven, no permission nodes needed).
 
 **Install**: drop the jar into `plugins/` (server) or `mods/` (client, requires Fabric API; **malilib is NOT required**). See config comments in `plugins/ProjectMemo/config.yml` for `role`/`redis`/`wiki-export`/`qq-events`.

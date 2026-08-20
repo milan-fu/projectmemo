@@ -75,8 +75,8 @@ public final class MemoInputDialog extends Screen {
         input.render(g, mouseX, mouseY, partialTick);
 
         buttons.clear();
-        UiKit.UiButton ok = new UiKit.UiButton(x0 + panelW - 108, y0 + panelH - 24, 46, 16, "确定", this::confirm);
-        UiKit.UiButton cancel = new UiKit.UiButton(x0 + panelW - 56, y0 + panelH - 24, 46, 16, "取消", this::onClose);
+        UiKit.UiButton ok = new UiKit.UiButton(x0 + panelW - 108, y0 + panelH - 24, 46, 16, L10n.get("projectmemo.common.ok"), this::confirm);
+        UiKit.UiButton cancel = new UiKit.UiButton(x0 + panelW - 56, y0 + panelH - 24, 46, 16, L10n.get("projectmemo.common.cancel"), this::onClose);
         buttons.add(ok);
         buttons.add(cancel);
         for (UiKit.UiButton b : buttons) UiKit.button(g, this.font, b, mouseX, mouseY);
@@ -86,7 +86,7 @@ public final class MemoInputDialog extends Screen {
     private void confirm() {
         String value = input.getValue().trim();
         if (value.isEmpty() && !allowEmpty) {
-            MemoToast.push("输入不能为空", MemoToast.RED);
+            MemoToast.push(L10n.get("projectmemo.toast.emptyInput"), MemoToast.RED);
             return;
         }
         Minecraft.getInstance().setScreen(backTo);
