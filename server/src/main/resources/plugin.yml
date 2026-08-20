@@ -1,0 +1,36 @@
+name: ProjectMemo
+version: 1.0.0
+main: com.sthstrange.projectmemo.ProjectMemoPlugin
+api-version: '1.21'
+author: sth-strange
+description: 工程备忘录 - 双显示路径（聊天点击 UI / 客户端模组），生存服唯一写入口
+softdepend:
+  - AuthMe
+  - LuckPerms
+commands:
+  memo:
+    description: 工程备忘录
+    usage: /memo
+    permission: memo.use
+permissions:
+  memo.use:
+    description: 查看备忘录
+    default: true
+  memo.claim:
+    description: 认领子任务/登记材料
+    default: true
+  memo.daily:
+    description: 活动打卡
+    default: true
+  memo.create:
+    description: 创建工程/子任务（creator 组，受每日限额）
+    default: false
+  memo.delete:
+    description: 删除条目（仅 OP）
+    default: op
+  memo.archive:
+    description: 归档（仅 OP）
+    default: op
+  memo.admin:
+    description: 管理（仅 OP）
+    default: op
