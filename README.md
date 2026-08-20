@@ -22,6 +22,8 @@
 
 ### 服务端插件（Paper / Leaves 1.21.x）
 
+> 也可从 Hangar 直接下载：https://hangar.papermc.io/fudoghh/ProjectMemo
+
 1. `ProjectMemo-1.0.0.jar` 放入 `plugins/`
 2. 重启后编辑 `plugins/ProjectMemo/config.yml`（全部配置项见文件内注释）：
    - `role: single` 单服使用；`role: writer` + `redis` 配置 = 对外发布镜像的写端；`role: mirror` = 只读镜像端（如创造服）
@@ -80,6 +82,6 @@ A **project-coordination memo system** for technical Minecraft communities: proj
 **Known limitation**: in the English UI some buttons may overflow or overlap (button widths are hard-coded pixels designed for Chinese text). Purely cosmetic — no functional impact; the Chinese UI is pixel-perfect.
 - Integrations: Markdown wiki export, `[MEMO-EVENT]` console lines (project created/completed/deleted) for chat bots, LuckPerms permission nodes plus per-project manager lists (data-driven, no permission nodes needed).
 
-**Install**: drop the jar into `plugins/` (server) or `mods/` (client, requires Fabric API; **malilib is NOT required**). See config comments in `plugins/ProjectMemo/config.yml` for `role`/`redis`/`wiki-export`/`qq-events`.
+**Install**: drop the jar into `plugins/` (server) or `mods/` (client, requires Fabric API; **malilib is NOT required**). The server plugin is also on [Hangar](https://hangar.papermc.io/fudoghh/ProjectMemo). See config comments in `plugins/ProjectMemo/config.yml` for `role`/`redis`/`wiki-export`/`qq-events`.
 
 **License**: [MIT](LICENSE) — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for bundled dependencies.
