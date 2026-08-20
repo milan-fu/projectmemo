@@ -96,10 +96,10 @@ public final class UiKit {
 
     public static String statusCn(String status) {
         switch (status) {
-            case "active": return "进行中";
-            case "planning": return "规划中";
-            case "completed": return "已完成";
-            case "archived": return "已归档";
+            case "active": return L10n.get("projectmemo.status.active");
+            case "planning": return L10n.get("projectmemo.status.planning");
+            case "completed": return L10n.get("projectmemo.status.completed");
+            case "archived": return L10n.get("projectmemo.status.archived");
             default: return status;
         }
     }
@@ -107,14 +107,14 @@ public final class UiKit {
     /** 按物品实际堆叠上限换算：盒=27组，组=堆叠上限（剪刀=1、雪球=16、多数=64） */
     public static String fmtAmount(long n, int stackSize) {
         if (n < 0) n = 0;
-        if (stackSize <= 1) return n + "个";
+        if (stackSize <= 1) return n + L10n.get("projectmemo.unit.piece");
         long boxSize = 27L * stackSize;
         long box = n / boxSize, rem = n % boxSize;
         long stack = rem / stackSize, piece = rem % stackSize;
         StringBuilder sb = new StringBuilder();
-        if (box > 0) sb.append(box).append("盒");
-        if (stack > 0 || box > 0) sb.append(stack).append("组");
-        sb.append(piece).append("个");
+        if (box > 0) sb.append(box).append(L10n.get("projectmemo.unit.box"));
+        if (stack > 0 || box > 0) sb.append(stack).append(L10n.get("projectmemo.unit.stack"));
+        sb.append(piece).append(L10n.get("projectmemo.unit.piece"));
         return sb.toString();
     }
 
@@ -144,13 +144,13 @@ public final class UiKit {
         return s.substring(0, end) + "…";
     }
 
-    /** 世界名中文化：含 nether→地狱，含 end→末地，其余→主世界 */
+    /** 世界名本地化：含 nether→下界，含 end→末地，其余→主世界 */
     public static String worldCn(String w) {
-        if (w == null || w.isEmpty()) return "主世界";
+        if (w == null || w.isEmpty()) return L10n.get("projectmemo.world.overworld");
         String lw = w.toLowerCase();
-        if (lw.contains("nether")) return "地狱";
-        if (lw.contains("end")) return "末地";
-        return "主世界";
+        if (lw.contains("nether")) return L10n.get("projectmemo.world.nether");
+        if (lw.contains("end")) return L10n.get("projectmemo.world.end");
+        return L10n.get("projectmemo.world.overworld");
     }
 
     /** 自绘按钮（每帧重建，mouseClicked 命中检测） */

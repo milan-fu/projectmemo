@@ -13,7 +13,11 @@ import java.util.List;
  */
 public final class ProjectDetailScreen extends MemoScreenBase {
 
-    private static final String[] TABS = {"信息", "子任务", "投影", "材料收集", "搭建说明"};
+    /** 标签页（本地化） */
+    private static String[] tabs() {
+        return new String[]{ L10n.get("projectmemo.tab.info"), L10n.get("projectmemo.tab.tasks"),
+                L10n.get("projectmemo.tab.schematics"), L10n.get("projectmemo.tab.materials"), L10n.get("projectmemo.tab.notes") };
+    }
     private static final int TASK_ROW_H = 20;
     private static final int MAT_ROW_H = 24;
     private static final int BTN_W = 30, BTN_GAP = 3;
@@ -26,9 +30,15 @@ public final class ProjectDetailScreen extends MemoScreenBase {
     private int sortDdX, sortDdY;      // 排序下拉位置
     private final List<MatLine> matLines = new java.util.ArrayList<>();
     private int matListX, matListW, matListTop, matListBottom;
-    private static final String[] SORT_LABELS = {"默认", "需求↑", "需求↓", "剩余↑", "剩余↓"};
+    private static String[] sortLabels() {
+        return new String[]{ L10n.get("projectmemo.sort.default"), L10n.get("projectmemo.sort.needUp"),
+                L10n.get("projectmemo.sort.needDown"), L10n.get("projectmemo.sort.remUp"), L10n.get("projectmemo.sort.remDown") };
+    }
     private static final int SORT_DD_ROW = 16;
-    private static final String[] TASK_FILTERS = {"全部", "已认领", "已完成", "未认领"};
+    private static String[] taskFilters() {
+        return new String[]{ L10n.get("projectmemo.taskFilter.all"), L10n.get("projectmemo.taskFilter.claimed"),
+                L10n.get("projectmemo.taskFilter.done"), L10n.get("projectmemo.taskFilter.open") };
+    }
     private static final int TASK_DD_ROW = 14;
     private boolean taskFilterOpen;          // 子任务筛选下拉是否展开
     private int taskFilterDdX, taskFilterDdY;
@@ -38,9 +48,9 @@ public final class ProjectDetailScreen extends MemoScreenBase {
     }
 
     public ProjectDetailScreen(int projectId, int initialTab) {
-        super("工程详情");
+        super(L10n.get("projectmemo.pd.screenTitle"));
         this.projectId = projectId;
-        this.tab = Math.max(0, Math.min(initialTab, TABS.length - 1));
+        this.tab = Math.max(0, Math.min(initialTab, tabs().length - 1));
     }
 
     private int panelW() { return Math.min(480, this.width - 16); }
@@ -73,11 +83,11 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         MemoData.Project pr = data.projectById(projectId);
         if (pr == null) {
             if (!MemoClientState.isReady()) {
-                g.drawString(this.font, "数据同步中…（刚进服稍等即显示）", x0 + 12, y0 + 20, UiKit.DIM, false);
+                g.drawString(this.font, L10n.get("projectmemo.pd.syncing"), x0 + 12, y0 + 20, UiKit.DIM, false);
             } else {
-                g.drawString(this.font, "工程不存在（可能已被删除）", x0 + 12, y0 + 20, UiKit.RED, false);
+                g.drawString(this.font, L10n.get("projectmemo.pd.projectGone"), x0 + 12, y0 + 20, UiKit.RED, false);
             }
-            UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 66, y0 + panelH - 24, 58, 16, "返回列表",
+            UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 66, y0 + panelH - 24, 58, 16, L10n.get("projectmemo.common.backToList"),
                     () -> this.minecraft.setScreen(new MemoMainScreen()));
             uiButtons.add(back);
             return;
@@ -87,34 +97,34 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         boolean editable = "planning".equals(pr.status) || "active".equals(pr.status);
 
         // ── 头部 ──
-        String titleStr = "《" + UiKit.trunc(pr.title, 18) + "》";
+        String titleStr = L10n.get("projectmemo.pd.titleFormat", UiKit.trunc(pr.title, 18));
         g.drawString(this.font, titleStr, x0 + 10, y0 + 8, UiKit.TEXT, false);
         String st = UiKit.statusSym(pr.status) + " " + UiKit.statusCn(pr.status) + "  #" + pr.id;
         int stX = x0 + 10 + this.font.width(titleStr) + 8;
         g.drawString(this.font, st, stX, y0 + 8, UiKit.statusColor(pr.status), false);
         if (MemoClientState.mirror()) {
-            g.drawString(this.font, "只读镜像", stX + this.font.width(st) + 8, y0 + 8, UiKit.GOLD, false);
+            g.drawString(this.font, L10n.get("projectmemo.pd.mirrorMark"), stX + this.font.width(st) + 8, y0 + 8, UiKit.GOLD, false);
         }
 
         // ── 设为首页（按 J 默认打开当前工程的当前标签页） ──
         {
             boolean isHome = ("project:" + projectId + ":" + tab).equals(MemoHome.load());
             UiKit.UiButton home = new UiKit.UiButton(x0 + panelW - 8 - 60, y0 + 5, 60, 14,
-                    isHome ? "★ 已是首页" : "设为首页", () -> {
+                    isHome ? L10n.get("projectmemo.main.isHome") : L10n.get("projectmemo.main.setHome"), () -> {
                         MemoHome.save("project:" + projectId + ":" + tab);
-                        MemoToast.push("已设为首页：按 J 直接打开本页", MemoToast.GREEN);
+                        MemoToast.push(L10n.get("projectmemo.pd.homeSet"), MemoToast.GREEN);
                     });
-            home.tooltip("把当前工程的当前标签页设为首页，按 J 直达");
+            home.tooltip(L10n.get("projectmemo.pd.homeTip"));
             if (isHome) home.disabled();
             uiButtons.add(home);
         }
 
         // ── 左侧标签列 ──
         int tx = x0 + 6, ty = y0 + 24;
-        for (int i = 0; i < TABS.length; i++) {
+        for (int i = 0; i < tabs().length; i++) {
             final int ti = i;
             boolean selected = tab == i;
-            UiKit.UiButton tbtn = new UiKit.UiButton(tx, ty, 64, 18, TABS[i], () -> switchTab(ti));
+            UiKit.UiButton tbtn = new UiKit.UiButton(tx, ty, 64, 18, tabs()[i], () -> switchTab(ti));
             uiButtons.add(tbtn);
             if (selected) g.fill(tx, ty, tx + 64, ty + 18, 0x50FFFFFF);
             ty += 20;
@@ -139,12 +149,12 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         int by = y0 + panelH - 24;
         int bx = x0 + 8;
         if (editable && mgr) {
-            UiKit.UiButton finish = new UiKit.UiButton(bx, by, 52, 16, "✔ 竣工", () -> {
+            UiKit.UiButton finish = new UiKit.UiButton(bx, by, 52, 16, L10n.get("projectmemo.pd.finish"), () -> {
                 List<MemoData.Task> ts = data.tasksOf(pr.id);
                 long undone = ts.stream().filter(t -> !"done".equals(t.status)).count();
                 if (undone > 0) {
-                    this.minecraft.setScreen(new MemoConfirmDialog(this, "竣工确认",
-                            "还有 " + undone + " 个子任务未完成，确定竣工？（竣工后冻结，需管理者解档）",
+                    this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.finishTitle"),
+                            L10n.get("projectmemo.pd.finishMsg", undone),
                             false, this::doFinish));
                 } else {
                     doFinish();
@@ -154,30 +164,30 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             bx += 56;
         }
         if ("completed".equals(pr.status) && mgr) {
-            UiKit.UiButton reopen = new UiKit.UiButton(bx, by, 44, 16, "解档", () ->
+            UiKit.UiButton reopen = new UiKit.UiButton(bx, by, 44, 16, L10n.get("projectmemo.pd.unarchive"), () ->
                     MemoClientState.sendAction("project_reopen", MemoClientState.argsOf("project", pr.id)));
-            reopen.tooltip("管理者+OP 可解档，回到进行中");
+            reopen.tooltip(L10n.get("projectmemo.pd.unarchiveTip"));
             uiButtons.add(reopen);
             bx += 48;
         }
         if ("archived".equals(pr.status) && MemoClientState.isOp()) {
-            UiKit.UiButton unarch = new UiKit.UiButton(bx, by, 52, 16, "取消归档", () ->
+            UiKit.UiButton unarch = new UiKit.UiButton(bx, by, 52, 16, L10n.get("projectmemo.pd.unarchive"), () ->
                     MemoClientState.sendAction("unarchive", MemoClientState.argsOf("project", pr.id)));
             uiButtons.add(unarch);
             bx += 56;
         }
         if (MemoClientState.isOp()) {
             if (!"archived".equals(pr.status)) {
-                UiKit.UiButton arch = new UiKit.UiButton(bx, by, 44, 16, "归档", () ->
-                        this.minecraft.setScreen(new MemoConfirmDialog(this, "归档确认",
-                                "归档《" + pr.title + "》？（从列表隐藏，数据保留）", false,
+                UiKit.UiButton arch = new UiKit.UiButton(bx, by, 44, 16, L10n.get("projectmemo.pd.archive"), () ->
+                        this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.archiveTitle"),
+                                L10n.get("projectmemo.pd.archiveMsg", pr.title), false,
                                 () -> MemoClientState.sendAction("archive", MemoClientState.argsOf("project", pr.id)))));
                 uiButtons.add(arch);
                 bx += 48;
             }
-            UiKit.UiButton del = new UiKit.UiButton(bx, by, 44, 16, "删除", () ->
-                    this.minecraft.setScreen(new MemoConfirmDialog(this, "删除工程",
-                            "彻底删除《" + pr.title + "》及其全部子任务与材料行？不可恢复！", true,
+            UiKit.UiButton del = new UiKit.UiButton(bx, by, 44, 16, L10n.get("projectmemo.common.delete"), () ->
+                    this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.deleteTitle"),
+                            L10n.get("projectmemo.pd.deleteMsg", pr.title), true,
                             () -> {
                                 MemoClientState.sendAction("delete_project",
                                         MemoClientState.argsOf("project", pr.id));
@@ -186,7 +196,7 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             del.danger();
             uiButtons.add(del);
         }
-        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 8 - 58, by, 58, 16, "返回列表",
+        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 8 - 58, by, 58, 16, L10n.get("projectmemo.common.backToList"),
                 () -> this.minecraft.setScreen(new MemoMainScreen()));
         uiButtons.add(back);
     }
@@ -202,13 +212,14 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         boolean canManageList = (MemoClientState.isOp() || isCreator(pr)) && editable;
         int y = cy0 + 2;
 
-        g.drawString(this.font, "创建: " + pr.creator + " · " + UiKit.fmtDate(pr.createdAt) + " 开始"
-                + ("completed".equals(pr.status) && pr.completedAt > 0 ? " · " + UiKit.fmtDate(pr.completedAt) + " 竣工" : ""),
+        g.drawString(this.font, L10n.get("projectmemo.pd.createdMeta", pr.creator, UiKit.fmtDate(pr.createdAt))
+                + ("completed".equals(pr.status) && pr.completedAt > 0 ? L10n.get("projectmemo.pd.completedSuffix", UiKit.fmtDate(pr.completedAt)) : ""),
                 cx, y, UiKit.DIM, false);
         y += 14;
 
-        int mx = cx + this.font.width("管理者: ");
-        g.drawString(this.font, "管理者:", cx, y, UiKit.DIM, false);
+        String mgrLabel = L10n.get("projectmemo.pd.managers");
+        int mx = cx + this.font.width(mgrLabel);
+        g.drawString(this.font, mgrLabel, cx, y, UiKit.DIM, false);
         for (String name : pr.managers) {
             g.drawString(this.font, name, mx, y, UiKit.TEXT, false);
             mx += this.font.width(name) + 2;
@@ -217,8 +228,8 @@ public final class ProjectDetailScreen extends MemoScreenBase {
                 UiKit.UiButton rm = new UiKit.UiButton(mx, y - 2, 16, 13, "-", isCreator ? null : () ->
                         MemoClientState.sendAction("set_managers",
                                 MemoClientState.argsOf("project", pr.id, "add", false, "name", name)));
-                if (isCreator) { rm.disabled(); rm.tooltip("创建者默认是管理者，不可移除"); }
-                else rm.tooltip("移除管理者 " + name);
+                if (isCreator) { rm.disabled(); rm.tooltip(L10n.get("projectmemo.err.creatorManager")); }
+                else rm.tooltip(L10n.get("projectmemo.pd.removeManagerTip", name));
                 uiButtons.add(rm);
                 mx += 16 + 6;
             } else {
@@ -226,8 +237,8 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             }
         }
         if (canManageList) {
-            UiKit.UiButton addM = new UiKit.UiButton(mx, y - 2, 34, 13, "+添加", () ->
-                    this.minecraft.setScreen(new MemoInputDialog(this, "添加管理者", "玩家名（必须进过服）", "", 16,
+            UiKit.UiButton addM = new UiKit.UiButton(mx, y - 2, 34, 13, L10n.get("projectmemo.common.add"), () ->
+                    this.minecraft.setScreen(new MemoInputDialog(this, L10n.get("projectmemo.pd.addManagerTitle"), L10n.get("projectmemo.pd.playerNamePrompt"), "", 16,
                             name -> MemoClientState.sendAction("set_managers",
                                     MemoClientState.argsOf("project", pr.id, "add", true, "name", name)))));
             uiButtons.add(addM);
@@ -236,10 +247,10 @@ public final class ProjectDetailScreen extends MemoScreenBase {
 
         // 选址行
         String locText;
-        if (pr.locWorld.isEmpty()) locText = "选址: （未选址）";
-        else if (pr.locHidden && !mgr) locText = "选址: （已隐藏）";
-        else locText = "选址: " + UiKit.worldCn(pr.locWorld) + " " + pr.locX + ", " + pr.locY + ", " + pr.locZ
-                + (pr.locNote.isEmpty() ? "" : " (" + pr.locNote + ")");
+                if (pr.locWorld.isEmpty()) locText = L10n.get("projectmemo.pd.locNone");
+        else if (pr.locHidden && !mgr) locText = L10n.get("projectmemo.pd.locHidden");
+        else locText = L10n.get("projectmemo.pd.locAt", UiKit.worldCn(pr.locWorld), pr.locX, pr.locY, pr.locZ)
+                + (pr.locNote.isEmpty() ? "" : L10n.get("projectmemo.pd.locNote", pr.locNote));
         g.drawString(this.font, UiKit.truncPx(this.font, locText, cw - 130), cx, y, UiKit.DIM, false);
         // 标识区：锁 +（隐藏），不用进编辑页就能看出状态
         int markX = cx + this.font.width(UiKit.truncPx(this.font, locText, cw - 130)) + 4;
@@ -248,26 +259,26 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             markX += 12;
         }
         if (pr.locHidden && mgr) {
-            g.drawString(this.font, "（隐藏）", markX, y, UiKit.GOLD, false);
+            g.drawString(this.font, L10n.get("projectmemo.pd.hiddenMark"), markX, y, UiKit.GOLD, false);
         }
         if (mgr && editable) {
-            UiKit.UiButton editLoc = new UiKit.UiButton(cx + cw - 64, y - 2, 62, 14, "编辑选址…", () ->
+            UiKit.UiButton editLoc = new UiKit.UiButton(cx + cw - 64, y - 2, 62, 14, L10n.get("projectmemo.pd.editLoc"), () ->
                     this.minecraft.setScreen(new MemoLocationScreen(pr.id)));
             uiButtons.add(editLoc);
         }
         y += 15;
 
-        g.drawString(this.font, "描述:", cx, y, UiKit.DIM, false);
+        g.drawString(this.font, L10n.get("projectmemo.pd.descLabel"), cx, y, UiKit.DIM, false);
         if (mgr && editable) {
-            UiKit.UiButton editDesc = new UiKit.UiButton(cx + cw - 58, y - 2, 56, 14, "编辑描述", () ->
-                    this.minecraft.setScreen(new MemoTextScreen("编辑描述", pr.desc, this,
+            UiKit.UiButton editDesc = new UiKit.UiButton(cx + cw - 58, y - 2, 56, 14, L10n.get("projectmemo.pd.editDesc"), () ->
+                    this.minecraft.setScreen(new MemoTextScreen(L10n.get("projectmemo.pd.editDesc"), pr.desc, this,
                             v -> MemoClientState.sendAction("edit_project",
                                     MemoClientState.argsOf("project", pr.id, "field", "desc", "value", v)))));
             uiButtons.add(editDesc);
         }
         y += 13;
         if (pr.desc.isEmpty()) {
-            g.drawString(this.font, "（无描述）", cx + 4, y, UiKit.FAINT, false);
+            g.drawString(this.font, L10n.get("projectmemo.pd.noDesc"), cx + 4, y, UiKit.FAINT, false);
             y += 13;
         } else {
             for (FormattedCharSequence line : this.font.split(net.minecraft.network.chat.Component.literal(pr.desc), cw - 8)) {
@@ -281,11 +292,11 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         // 参与玩家（管理者可手动增删——覆盖"参与了但没领任务"的玩家）
         {
             boolean canEditParts = mgr && !"archived".equals(pr.status);
-            g.drawString(this.font, "参与玩家:", cx, y, UiKit.DIM, false);
-            int px = cx + this.font.width("参与玩家") + 4;
+            g.drawString(this.font, L10n.get("projectmemo.pd.participants"), cx, y, UiKit.DIM, false);
+            int px = cx + this.font.width(L10n.get("projectmemo.pd.participants")) + 4;
             if (pr.participants.isEmpty()) {
-                g.drawString(this.font, "（暂无）", px, y, UiKit.FAINT, false);
-                px += this.font.width("（暂无）") + 4;
+                g.drawString(this.font, L10n.get("projectmemo.common.none"), px, y, UiKit.FAINT, false);
+                px += this.font.width(L10n.get("projectmemo.common.none")) + 4;
             }
             for (String name : pr.participants) {
                 if (px > cx + cw - 60) break;
@@ -295,7 +306,7 @@ public final class ProjectDetailScreen extends MemoScreenBase {
                     UiKit.UiButton rm = new UiKit.UiButton(px, y - 2, 14, 13, "-", () ->
                             MemoClientState.sendAction("participants_remove",
                                     MemoClientState.argsOf("project", pr.id, "name", name)));
-                    rm.tooltip("移除参与玩家 " + name);
+                    rm.tooltip(L10n.get("projectmemo.pd.removeParticipantTip", name));
                     uiButtons.add(rm);
                     px += 14 + 5;
                 } else {
@@ -303,8 +314,8 @@ public final class ProjectDetailScreen extends MemoScreenBase {
                 }
             }
             if (canEditParts) {
-                UiKit.UiButton addP = new UiKit.UiButton(px, y - 2, 34, 13, "+添加", () ->
-                        this.minecraft.setScreen(new MemoInputDialog(this, "添加参与玩家", "玩家名（必须进过服）", "", 16,
+                UiKit.UiButton addP = new UiKit.UiButton(px, y - 2, 34, 13, L10n.get("projectmemo.common.add"), () ->
+                        this.minecraft.setScreen(new MemoInputDialog(this, L10n.get("projectmemo.pd.addParticipantTitle"), L10n.get("projectmemo.pd.playerNamePrompt"), "", 16,
                                 name -> MemoClientState.sendAction("participants_add",
                                         MemoClientState.argsOf("project", pr.id, "name", name)))));
                 uiButtons.add(addP);
@@ -313,21 +324,21 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         }
 
         if (mgr && editable) {
-            UiKit.UiButton editTitle = new UiKit.UiButton(cx, cy1 - 16, 56, 14, "改标题", () ->
-                    this.minecraft.setScreen(new MemoInputDialog(this, "修改标题", "≤30 字", pr.title, 30,
+            UiKit.UiButton editTitle = new UiKit.UiButton(cx, cy1 - 16, 56, 14, L10n.get("projectmemo.task.rename"), () ->
+                    this.minecraft.setScreen(new MemoInputDialog(this, L10n.get("projectmemo.task.renameTitle"), L10n.get("projectmemo.pd.titlePrompt"), pr.title, 30,
                             v -> MemoClientState.sendAction("edit_project",
                                     MemoClientState.argsOf("project", pr.id, "field", "title", "value", v)))));
             uiButtons.add(editTitle);
-            UiKit.UiButton imp = new UiKit.UiButton(cx + 60, cy1 - 16, 64, 14, "📥 投影导入", () ->
+            UiKit.UiButton imp = new UiKit.UiButton(cx + 60, cy1 - 16, 64, 14, L10n.get("projectmemo.pd.importSchematics"), () ->
                     this.minecraft.setScreen(new MemoImportsScreen(pr.id)));
             uiButtons.add(imp);
             if ("planning".equals(pr.status)) {
-                UiKit.UiButton toActive = new UiKit.UiButton(cx + 128, cy1 - 16, 64, 14, "切换为进行中", () ->
+                UiKit.UiButton toActive = new UiKit.UiButton(cx + 128, cy1 - 16, 64, 14, L10n.get("projectmemo.pd.toActive"), () ->
                         MemoClientState.sendAction("edit_project",
                                 MemoClientState.argsOf("project", pr.id, "field", "status", "value", "active")));
                 uiButtons.add(toActive);
             } else if ("active".equals(pr.status)) {
-                UiKit.UiButton toPlanning = new UiKit.UiButton(cx + 128, cy1 - 16, 64, 14, "切换为规划中", () ->
+                UiKit.UiButton toPlanning = new UiKit.UiButton(cx + 128, cy1 - 16, 64, 14, L10n.get("projectmemo.pd.toPlanning"), () ->
                         MemoClientState.sendAction("edit_project",
                                 MemoClientState.argsOf("project", pr.id, "field", "status", "value", "planning")));
                 uiButtons.add(toPlanning);
@@ -348,19 +359,19 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         int tf = MemoClientState.getTaskFilter(pr.id);
         List<MemoData.Task> tasks = filteredTasks(all, tf);
         long done = all.stream().filter(t -> "done".equals(t.status)).count();
-        String header = "子任务 " + done + "/" + all.size()
-                + (tf > 0 ? " · 筛选:" + TASK_FILTERS[tf] : "（点击行查看详情）");
+        String header = L10n.get("projectmemo.pd.tasksHeader", done, all.size())
+                + (tf > 0 ? L10n.get("projectmemo.pd.filteredBy", taskFilters()[tf]) : L10n.get("projectmemo.pd.clickRowHint"));
         g.drawString(this.font, header, cx, cy0 + 2, UiKit.TEXT, false);
         // 材料收集任务：所有玩家可加（自动认领）；镜像服全只读不出
         if (editable && !MemoClientState.readOnly()) {
-            UiKit.UiButton collectTask = new UiKit.UiButton(cx + cw - 64, cy0, 62, 14, "➕ 材料收集", () ->
+            UiKit.UiButton collectTask = new UiKit.UiButton(cx + cw - 64, cy0, 62, 14, L10n.get("projectmemo.pd.addCollect"), () ->
                     this.minecraft.setScreen(new MemoCollectPickScreen(pr.id)));
-            collectTask.tooltip("认领一项材料的收集任务（自动归你，别人不能再认领）");
+            collectTask.tooltip(L10n.get("projectmemo.pd.addCollectTip"));
             uiButtons.add(collectTask);
         }
         if (MemoClientState.canCreate() && editable) {
-            UiKit.UiButton newTask = new UiKit.UiButton(cx + cw - 64 - 66, cy0, 62, 14, "➕ 自定义任务", () ->
-                    this.minecraft.setScreen(new MemoInputDialog(this, "新建子任务", "子任务标题（≤40 字）", "", 40,
+            UiKit.UiButton newTask = new UiKit.UiButton(cx + cw - 64 - 66, cy0, 62, 14, L10n.get("projectmemo.pd.addTask"), () ->
+                    this.minecraft.setScreen(new MemoInputDialog(this, L10n.get("projectmemo.pd.newTaskTitle"), L10n.get("projectmemo.task.renamePrompt"), "", 40,
                             title -> MemoClientState.sendAction("create_task",
                                     MemoClientState.argsOf("project", pr.id, "title", title)))));
             uiButtons.add(newTask);
@@ -373,9 +384,9 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         int tfw = 62;
         taskFilterDdX = fx - tfw;
         taskFilterDdY = cy0 - 1 + 15;
-        UiKit.UiButton tfBtn = new UiKit.UiButton(taskFilterDdX, cy0 - 1, tfw, 14, "▾" + TASK_FILTERS[tf],
+        UiKit.UiButton tfBtn = new UiKit.UiButton(taskFilterDdX, cy0 - 1, tfw, 14, "▾" + taskFilters()[tf],
                 () -> taskFilterOpen = !taskFilterOpen);
-        tfBtn.tooltip("子任务筛选（全部/已认领/已完成/未认领）");
+        tfBtn.tooltip(L10n.get("projectmemo.pd.taskFilterTip"));
         uiButtons.add(tfBtn);
 
         taskListLeft = cx;
@@ -387,7 +398,7 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         scroll = clampScroll(scroll, maxScroll);
 
         if (tasks.isEmpty()) {
-            g.drawString(this.font, all.isEmpty() ? "（暂无子任务）" : "（没有匹配的子任务）",
+            g.drawString(this.font, all.isEmpty() ? L10n.get("projectmemo.pd.noTasks") : L10n.get("projectmemo.pd.noMatchingTasks"),
                     cx + 4, taskListTop + 8, UiKit.FAINT, false);
         }
 
@@ -414,13 +425,13 @@ public final class ProjectDetailScreen extends MemoScreenBase {
                 x += 10;
                 g.drawString(this.font, UiKit.truncPx(this.font, titleShow, cw - 160), x, rowY + 6, UiKit.YELLOW, false);
                 x = cx + cw - 140;
-                g.drawString(this.font, "认领: " + t.assignee, x, rowY + 6, UiKit.DIM, false);
+                g.drawString(this.font, L10n.get("projectmemo.pd.claimedByRow", t.assignee), x, rowY + 6, UiKit.DIM, false);
             } else {
                 g.drawString(this.font, "○", x, rowY + 6, UiKit.DIM, false);
                 x += 10;
                 g.drawString(this.font, UiKit.truncPx(this.font, titleShow, cw - 160), x, rowY + 6, UiKit.TEXT, false);
                 x = cx + cw - 140;
-                g.drawString(this.font, "待认领", x, rowY + 6, UiKit.DIM, false);
+                g.drawString(this.font, L10n.get("projectmemo.task.statusOpen"), x, rowY + 6, UiKit.DIM, false);
             }
             if (!t.note.isEmpty()) {
                 g.drawString(this.font, "📝", cx + cw - 24, rowY + 6, UiKit.FAINT, false);
@@ -447,9 +458,9 @@ public final class ProjectDetailScreen extends MemoScreenBase {
 
     private void drawSchematicsTab(GuiGraphics g, MemoData.Project pr, boolean mgr, boolean editable,
                                    int cx, int cw, int cy0, int cy1) {
-        g.drawString(this.font, "已导入的投影（" + pr.schematics.size() + " 个）", cx, cy0 + 2, UiKit.TEXT, false);
+        g.drawString(this.font, L10n.get("projectmemo.pd.importedSchematics", pr.schematics.size()), cx, cy0 + 2, UiKit.TEXT, false);
         if (mgr && editable) {
-            UiKit.UiButton imp = new UiKit.UiButton(cx + cw - 64, cy0, 62, 14, "📥 投影导入", () ->
+            UiKit.UiButton imp = new UiKit.UiButton(cx + cw - 64, cy0, 62, 14, L10n.get("projectmemo.pd.importSchematics"), () ->
                     this.minecraft.setScreen(new MemoImportsScreen(pr.id)));
             uiButtons.add(imp);
         }
@@ -461,8 +472,8 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         scroll = clampScroll(scroll, maxScroll);
 
         if (pr.schematics.isEmpty()) {
-            g.drawString(this.font, "（还没有导入投影）", cx + 4, listTop + 8, UiKit.FAINT, false);
-            g.drawString(this.font, "从「共享投影库」或「本机 schematics 目录」导入，自动生成材料行", cx + 4, listTop + 22, UiKit.FAINT, false);
+            g.drawString(this.font, L10n.get("projectmemo.pd.noSchematics"), cx + 4, listTop + 8, UiKit.FAINT, false);
+            g.drawString(this.font, L10n.get("projectmemo.pd.schematicsHint"), cx + 4, listTop + 22, UiKit.FAINT, false);
         }
 
         g.enableScissor(cx, listTop, cx + cw, listBottom);
@@ -472,21 +483,21 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             MemoData.SchemEntry se = pr.schematics.get(i);
             final int idx = i;
             if (i % 2 == 0) g.fill(cx, rowY, cx + cw, rowY + rowH, 0x10FFFFFF);
-            String src = "shared".equals(se.source) ? "共享" : "本地";
+            String src = "shared".equals(se.source) ? L10n.get("projectmemo.pd.srcShared") : L10n.get("projectmemo.pd.srcLocal");
             g.drawString(this.font, UiKit.truncPx(this.font, se.name, cw - 200), cx + 4, rowY + 3, UiKit.TEXT, false);
-            g.drawString(this.font, "[" + src + "] " + se.blocks + " 方块 " + se.kinds + " 种"
+            g.drawString(this.font, L10n.get("projectmemo.pd.schematicMeta", src, se.blocks, se.kinds)
                     + (se.by.isEmpty() ? "" : " by " + se.by) + " " + UiKit.fmtDate(se.at),
                     cx + 4, rowY + 13, UiKit.FAINT, false);
             if (mgr) {
                 int bx = cx + cw - 4;
                 bx -= 34;
-                UiKit.UiButton del = new UiKit.UiButton(bx, rowY + 4, 30, 14, "删除", () ->
-                        this.minecraft.setScreen(new MemoConfirmDialog(this, "删除投影",
-                                "删除投影「" + se.name + "」？\n会连带删除该投影生成的材料行！", true,
+                UiKit.UiButton del = new UiKit.UiButton(bx, rowY + 4, 30, 14, L10n.get("projectmemo.common.delete"), () ->
+                        this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.deleteSchematicTitle"),
+                                L10n.get("projectmemo.pd.deleteSchematicMsg", se.name), true,
                                 () -> MemoClientState.sendAction("schematic_delete",
                                         MemoClientState.argsOf("project", pr.id, "idx", idx)))));
                 del.danger();
-                del.tooltip("删除该投影记录，并连带删除其生成的材料行");
+                del.tooltip(L10n.get("projectmemo.pd.deleteSchematicTip"));
                 uiButtons.add(del);
             }
         }
@@ -572,40 +583,39 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         for (MatView v : views) { fNeed += v.need; fDelivered += Math.min(v.delivered, v.need); }
         int pct = fNeed <= 0 ? 0 : (int) (fDelivered * 100 / fNeed);
         boolean filtered = srcFilter != null || claimFilter != null;
-        g.drawString(this.font, "材料收集 " + pct + "%" + (filtered ? "（已筛选）" : ""), cx, cy0 + 2, UiKit.TEXT, false);
+        g.drawString(this.font, L10n.get("projectmemo.pd.materialsHeader", pct) + (filtered ? L10n.get("projectmemo.pd.filteredMark") : ""), cx, cy0 + 2, UiKit.TEXT, false);
 
         // ── 头部按钮（从右往左，紧凑布局不遮挡百分比文字）──
         {
             int bx = cx + cw;
             if (mgr && editable) {
-                bx = addHeaderButton(bx, cy0, 36, "导入", () -> this.minecraft.setScreen(new MemoImportsScreen(pr.id)));
-                bx = addHeaderButton(bx, cy0, 36, "添加", () -> this.minecraft.setScreen(new MemoItemPickerScreen(pr.id)));
+                bx = addHeaderButton(bx, cy0, 36, L10n.get("projectmemo.pd.matImport"), () -> this.minecraft.setScreen(new MemoImportsScreen(pr.id)));
+                bx = addHeaderButton(bx, cy0, 36, L10n.get("projectmemo.pd.matAdd"), () -> this.minecraft.setScreen(new MemoItemPickerScreen(pr.id)));
             }
-            bx = addHeaderButton(bx, cy0, 46, unitBoxes ? "单位:盒" : "单位:数", () ->
+            bx = addHeaderButton(bx, cy0, 46, unitBoxes ? L10n.get("projectmemo.pd.unitBoxes") : L10n.get("projectmemo.pd.unitCount"), () ->
                     MemoClientState.setMatUnitBoxes(pr.id, !MemoClientState.getMatUnitBoxes(pr.id)));
             // 排序下拉按钮
             int sw = 54;
             sortDdX = bx - sw;
             sortDdY = cy0 - 1 + 15;
-            UiKit.UiButton sortBtn = new UiKit.UiButton(sortDdX, cy0 - 1, sw, 14, "▾" + SORT_LABELS[sortMode],
+            UiKit.UiButton sortBtn = new UiKit.UiButton(sortDdX, cy0 - 1, sw, 14, "▾" + sortLabels()[sortMode],
                     () -> sortOpen = !sortOpen);
             uiButtons.add(sortBtn);
             bx -= sw + 4;
-            addHeaderButton(bx, cy0, 36, "筛选", () -> this.minecraft.setScreen(new MemoSourceFilterScreen(pr.id)));
+            addHeaderButton(bx, cy0, 36, L10n.get("projectmemo.pd.matFilter"), () -> this.minecraft.setScreen(new MemoSourceFilterScreen(pr.id)));
         }
 
         // ── 收集区域（两行布局：坐标一行，按钮一行；选址隐藏时坐标一并隐藏） ──
         int dy = cy0 + 17;
         boolean canSeeDep = !(pr.locHidden && !mgr);
         if (pr.depWorld.isEmpty()) {
-            g.drawString(this.font, "收集区域: 未设置（站在一角点 [角点A]，走到对角 [角点B]；把材料放进区域内容器，点 [核验] 自动计数）",
+            g.drawString(this.font, L10n.get("projectmemo.pd.depUnset"),
                     cx, dy, UiKit.DIM, false);
         } else if (!canSeeDep) {
-            g.drawString(this.font, "收集区域: 已设置（坐标已随选址隐藏，问管理者要坐标）", cx, dy, UiKit.DIM, false);
+            g.drawString(this.font, L10n.get("projectmemo.pd.depHidden"), cx, dy, UiKit.DIM, false);
         } else {
-            String depText = "收集区域: " + UiKit.worldCn(pr.depWorld)
-                    + " (" + pr.depX1 + "," + pr.depY1 + "," + pr.depZ1
-                    + ") → (" + pr.depX2 + "," + pr.depY2 + "," + pr.depZ2 + ")";
+            String depText = L10n.get("projectmemo.pd.depArea", UiKit.worldCn(pr.depWorld),
+                    pr.depX1, pr.depY1, pr.depZ1, pr.depX2, pr.depY2, pr.depZ2);
             g.drawString(this.font, depText, cx, dy, UiKit.DIM, false);
             int depMarkX = cx + this.font.width(depText) + 4;
             if (pr.depLocked && mgr) {
@@ -613,34 +623,34 @@ public final class ProjectDetailScreen extends MemoScreenBase {
                 depMarkX += 12;
             }
             if (pr.locHidden && mgr) {
-                g.drawString(this.font, "（隐藏）", depMarkX, dy, UiKit.GOLD, false);
+                g.drawString(this.font, L10n.get("projectmemo.pd.hiddenMark"), depMarkX, dy, UiKit.GOLD, false);
             }
         }
         if (mgr && editable) {
             boolean locked = pr.depLocked;
             int bx = cx + cw;
-            UiKit.UiButton check = new UiKit.UiButton(bx - 40, dy + 13, 40, 14, "核验", () ->
+            UiKit.UiButton check = new UiKit.UiButton(bx - 40, dy + 13, 40, 14, L10n.get("projectmemo.pd.verify"), () ->
                     MemoClientState.sendAction("check_deposit", MemoClientState.argsOf("project", pr.id)));
-            check.tooltip("扫描区域内容器（箱子/桶/潜影盒/漏斗），按容器实际数量更新各材料行进度");
+            check.tooltip(L10n.get("projectmemo.pd.verifyTip"));
             uiButtons.add(check);
             bx -= 44;
-            UiKit.UiButton cb = new UiKit.UiButton(bx - 40, dy + 13, 40, 14, "角点B", locked ? null : () ->
+            UiKit.UiButton cb = new UiKit.UiButton(bx - 40, dy + 13, 40, 14, L10n.get("projectmemo.pd.cornerB"), locked ? null : () ->
                     MemoClientState.sendAction("set_deposit_b", MemoClientState.argsOf("project", pr.id)));
-            cb.tooltip(locked ? "角点已锁定，先解锁再改" : "把当前脚下位置设为区域角点 B");
+            cb.tooltip(locked ? L10n.get("projectmemo.pd.cornerLockedTip") : L10n.get("projectmemo.pd.cornerBTip"));
             uiButtons.add(cb);
             bx -= 44;
-            UiKit.UiButton ca = new UiKit.UiButton(bx - 40, dy + 13, 40, 14, "角点A", locked ? null : () ->
+            UiKit.UiButton ca = new UiKit.UiButton(bx - 40, dy + 13, 40, 14, L10n.get("projectmemo.pd.cornerA"), locked ? null : () ->
                     MemoClientState.sendAction("set_deposit_a", MemoClientState.argsOf("project", pr.id)));
-            ca.tooltip(locked ? "角点已锁定，先解锁再改" : "把当前脚下位置设为区域角点 A");
+            ca.tooltip(locked ? L10n.get("projectmemo.pd.cornerLockedTip") : L10n.get("projectmemo.pd.cornerATip"));
             uiButtons.add(ca);
             bx -= 44;
             if (!pr.depWorld.isEmpty()) {
-                UiKit.UiButton lockBtn = new UiKit.UiButton(bx - 50, dy + 13, 50, 14, locked ? "🔓 解锁" : "🔒 锁定", () -> {
+                UiKit.UiButton lockBtn = new UiKit.UiButton(bx - 50, dy + 13, 50, 14, locked ? L10n.get("projectmemo.common.unlock") : L10n.get("projectmemo.common.lock"), () -> {
                     com.google.gson.JsonObject args = MemoClientState.argsOf("project", pr.id);
                     args.addProperty("locked", !locked);
                     MemoClientState.sendAction("set_dep_lock", args);
                 });
-                lockBtn.tooltip(locked ? "解锁角点，允许修改" : "锁定角点，防止误改");
+                lockBtn.tooltip(locked ? L10n.get("projectmemo.pd.unlockDepTip") : L10n.get("projectmemo.pd.lockDepTip"));
                 uiButtons.add(lockBtn);
             }
         }
@@ -666,7 +676,7 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         scroll = clampScroll(scroll, maxScroll);
 
         if (views.isEmpty()) {
-            g.drawString(this.font, "（暂无材料行）管理者可 [添加] 或 [导入]", cx + 4, listTop + 8, UiKit.FAINT, false);
+            g.drawString(this.font, L10n.get("projectmemo.pd.noMaterials"), cx + 4, listTop + 8, UiKit.FAINT, false);
         }
 
         g.enableScissor(cx, listTop, cx + cw, listBottom);
@@ -681,18 +691,18 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             if (line.sub != null) {
                 MemoData.MaterialRow m = line.sub;
                 String srcLabel = (m.source == null || m.source.isEmpty() || "custom".equals(m.source))
-                        ? "手动添加" : m.source;
+                        ? L10n.get("projectmemo.filter.customSource") : m.source;
                 String subAmt = unitBoxes
                         ? UiKit.fmtAmount(m.delivered, line.view.stack) + " / " + UiKit.fmtAmount(m.need, line.view.stack)
-                        : m.delivered + " / " + m.need + " 个";
+                        : L10n.get("projectmemo.task.progressCount", m.delivered, m.need);
                 g.drawString(this.font, "├ " + UiKit.truncPx(this.font, srcLabel, cw - 190),
                         cx + 20, rowY + 4, UiKit.FAINT, false);
                 g.drawString(this.font, subAmt, cx + cw - 150, rowY + 4,
                         m.delivered >= m.need ? UiKit.GREEN : UiKit.DIM, false);
                 if (mgr && editable) {
-                    UiKit.UiButton subDel = new UiKit.UiButton(cx + cw - 30, rowY + 1, 26, 13, "删", () ->
-                            this.minecraft.setScreen(new MemoConfirmDialog(this, "删除来源材料行",
-                                    "删除「" + line.view.name + "」来自「" + srcLabel + "」的这一条？\n其他来源的行保留。", true,
+                    UiKit.UiButton subDel = new UiKit.UiButton(cx + cw - 30, rowY + 1, 26, 13, L10n.get("projectmemo.pd.delShort"), () ->
+                            this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.delSourceTitle"),
+                                    L10n.get("projectmemo.pd.delSourceMsg", line.view.name, srcLabel), true,
                                     () -> MemoClientState.sendAction("material_remove",
                                             MemoClientState.argsOf("material", m.id)))));
                     subDel.danger();
@@ -718,7 +728,7 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             x += 88;
             String amt = unitBoxes
                     ? UiKit.fmtAmount(v.delivered, v.stack) + " / " + UiKit.fmtAmount(v.need, v.stack)
-                    : v.delivered + " / " + v.need + " 个";
+                    : L10n.get("projectmemo.task.progressCount", v.delivered, v.need);
             g.drawString(this.font, amt, x, rowY + 4, v.delivered >= v.need ? UiKit.GREEN : UiKit.DIM, false);
             x += this.font.width(amt) + 8;
             int barMax = cx + cw - actionW - x - (v.collectBy.isEmpty() ? 8 : 78);
@@ -738,16 +748,16 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             if (canDel) {
                 if (single) {
                     MemoData.MaterialRow m = v.rows.get(0);
-                    addMatRowButton(cx + cw - 4, rowY, 30, "删行", true, () ->
-                            this.minecraft.setScreen(new MemoConfirmDialog(this, "删除材料行", "删除「" + v.name + "」这行？", true,
+                    addMatRowButton(cx + cw - 4, rowY, 30, L10n.get("projectmemo.pd.delRow"), true, () ->
+                            this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.delRowTitle"), L10n.get("projectmemo.pd.delRowMsg", v.name), true,
                                     () -> MemoClientState.sendAction("material_remove", MemoClientState.argsOf("material", m.id)))));
                 } else {
                     int n = v.rows.size();
                     List<Integer> ids = new java.util.ArrayList<>();
                     for (MemoData.MaterialRow r : v.rows) ids.add(r.id);
-                    addMatRowButton(cx + cw - 4, rowY, 30, "删行", true, () ->
-                            this.minecraft.setScreen(new MemoConfirmDialog(this, "删除合并材料行",
-                                    "「" + v.name + "」合并自 " + n + " 个来源，全部删除？\n只想删一个来源可展开后逐条删。", true,
+                    addMatRowButton(cx + cw - 4, rowY, 30, L10n.get("projectmemo.pd.delRow"), true, () ->
+                            this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.delMergedTitle"),
+                                    L10n.get("projectmemo.pd.delMergedMsg", v.name, n), true,
                                     () -> {
                                         for (int id : ids) {
                                             MemoClientState.sendAction("material_remove",
@@ -769,29 +779,29 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         if (tab == 1 && taskFilterOpen) {
             int tfSel = MemoClientState.getTaskFilter(projectId);
             int ddW = 66;
-            int totalH = TASK_FILTERS.length * TASK_DD_ROW + 4;
+            int totalH = taskFilters().length * TASK_DD_ROW + 4;
             UiKit.panel(g, taskFilterDdX, taskFilterDdY, ddW, totalH);
-            for (int i = 0; i < TASK_FILTERS.length; i++) {
+            for (int i = 0; i < taskFilters().length; i++) {
                 int oy = taskFilterDdY + 2 + i * TASK_DD_ROW;
                 boolean sel = i == tfSel;
                 boolean hov = UiKit.inRect(mouseX, mouseY, taskFilterDdX, oy, ddW, TASK_DD_ROW);
                 if (sel) g.fill(taskFilterDdX + 1, oy, taskFilterDdX + ddW - 1, oy + TASK_DD_ROW, 0x50FFFFFF);
                 else if (hov) g.fill(taskFilterDdX + 1, oy, taskFilterDdX + ddW - 1, oy + TASK_DD_ROW, 0x30FFFFFF);
-                g.drawString(this.font, TASK_FILTERS[i], taskFilterDdX + 6, oy + 3, sel ? UiKit.GOLD : UiKit.TEXT, false);
+                g.drawString(this.font, taskFilters()[i], taskFilterDdX + 6, oy + 3, sel ? UiKit.GOLD : UiKit.TEXT, false);
             }
         }
         if (tab == 3 && sortOpen) {
             int sortMode = MemoClientState.getMatSort(projectId);
             int ddW = 80;
-            int totalH = SORT_LABELS.length * SORT_DD_ROW + 4;
+            int totalH = sortLabels().length * SORT_DD_ROW + 4;
             UiKit.panel(g, sortDdX, sortDdY, ddW, totalH);
-            for (int i = 0; i < SORT_LABELS.length; i++) {
+            for (int i = 0; i < sortLabels().length; i++) {
                 int oy = sortDdY + 2 + i * SORT_DD_ROW;
                 boolean sel = i == sortMode;
                 boolean hov = UiKit.inRect(mouseX, mouseY, sortDdX, oy, ddW, SORT_DD_ROW);
                 if (sel) g.fill(sortDdX + 1, oy, sortDdX + ddW - 1, oy + SORT_DD_ROW, 0x50FFFFFF);
                 else if (hov) g.fill(sortDdX + 1, oy, sortDdX + ddW - 1, oy + SORT_DD_ROW, 0x30FFFFFF);
-                g.drawString(this.font, SORT_LABELS[i], sortDdX + 6, oy + 4, sel ? UiKit.GOLD : UiKit.TEXT, false);
+                g.drawString(this.font, sortLabels()[i], sortDdX + 6, oy + 4, sel ? UiKit.GOLD : UiKit.TEXT, false);
             }
         }
     }
@@ -813,17 +823,17 @@ public final class ProjectDetailScreen extends MemoScreenBase {
 
     private void drawNoteTab(GuiGraphics g, MemoData.Project pr, boolean mgr, boolean editable,
                              int cx, int cw, int cy0, int cy1) {
-        g.drawString(this.font, "搭建说明:", cx, cy0 + 2, UiKit.TEXT, false);
+        g.drawString(this.font, L10n.get("projectmemo.pd.notesLabel"), cx, cy0 + 2, UiKit.TEXT, false);
         if (mgr && editable) {
-            UiKit.UiButton edit = new UiKit.UiButton(cx + cw - 66, cy0, 64, 14, "编辑说明", () ->
-                    this.minecraft.setScreen(new MemoTextScreen("编辑搭建说明", pr.buildNote, this,
+            UiKit.UiButton edit = new UiKit.UiButton(cx + cw - 66, cy0, 64, 14, L10n.get("projectmemo.task.editNote"), () ->
+                    this.minecraft.setScreen(new MemoTextScreen(L10n.get("projectmemo.pd.editNotesTitle"), pr.buildNote, this,
                             v -> MemoClientState.sendAction("edit_project",
                                     MemoClientState.argsOf("project", pr.id, "field", "note", "value", v)))));
             uiButtons.add(edit);
         }
         int y = cy0 + 16;
         if (pr.buildNote.isEmpty()) {
-            g.drawString(this.font, "（暂无搭建说明）", cx + 4, y, UiKit.FAINT, false);
+            g.drawString(this.font, L10n.get("projectmemo.pd.noNotes"), cx + 4, y, UiKit.FAINT, false);
         } else {
             for (FormattedCharSequence line : this.font.split(net.minecraft.network.chat.Component.literal(pr.buildNote), cw - 8)) {
                 if (y > cy1 - 10) break;
@@ -840,10 +850,10 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         // 子任务筛选下拉优先处理
         if (tab == 1 && taskFilterOpen && event.button() == 0) {
             int ddW = 66;
-            int totalH = TASK_FILTERS.length * TASK_DD_ROW + 4;
+            int totalH = taskFilters().length * TASK_DD_ROW + 4;
             if (UiKit.inRect(event.x(), event.y(), taskFilterDdX, taskFilterDdY, ddW, totalH)) {
                 int idx = (int) ((event.y() - taskFilterDdY - 2) / TASK_DD_ROW);
-                if (idx >= 0 && idx < TASK_FILTERS.length) {
+                if (idx >= 0 && idx < taskFilters().length) {
                     MemoClientState.setTaskFilter(projectId, idx);
                     scroll = 0;
                 }
@@ -856,10 +866,10 @@ public final class ProjectDetailScreen extends MemoScreenBase {
         // 排序下拉优先处理
         if (tab == 3 && sortOpen && event.button() == 0) {
             int ddW = 80;
-            int totalH = SORT_LABELS.length * SORT_DD_ROW + 4;
+            int totalH = sortLabels().length * SORT_DD_ROW + 4;
             if (UiKit.inRect(event.x(), event.y(), sortDdX, sortDdY, ddW, totalH)) {
                 int idx = (int) ((event.y() - sortDdY - 2) / SORT_DD_ROW);
-                if (idx >= 0 && idx < SORT_LABELS.length) {
+                if (idx >= 0 && idx < sortLabels().length) {
                     MemoClientState.setMatSort(projectId, idx);
                     scroll = 0;
                 }

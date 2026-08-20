@@ -16,7 +16,11 @@ import java.util.List;
 public final class MemoMainScreen extends MemoScreenBase {
 
     private static final int ROW_H = 22;
-    private static final String[] FILTERS = {"全部", "进行中", "规划中", "已完成", "已归档"};
+    /** 筛选下拉选项（本地化；与 UiKit.statusCn 的翻译保持一致用于匹配） */
+    private static String[] filters() {
+        return new String[]{ L10n.get("projectmemo.filter.all"), UiKit.statusCn("active"),
+                UiKit.statusCn("planning"), UiKit.statusCn("completed"), UiKit.statusCn("archived") };
+    }
 
     private String searchText = "";
     private int filterIndex = 0;      // 0全部(不含归档) 1进行中 2规划中 3已完成 4已归档
@@ -31,7 +35,7 @@ public final class MemoMainScreen extends MemoScreenBase {
     private int listTop, listBottom, listLeft, listRight;
 
     public MemoMainScreen() {
-        super("工程备忘录");
+        super(L10n.get("projectmemo.main.screenTitle"));
     }
 
     @Override
@@ -39,7 +43,7 @@ public final class MemoMainScreen extends MemoScreenBase {
         int panelW = panelW();
         int x0 = (this.width - panelW) / 2;
         int y0 = (this.height - panelH()) / 2;
-        searchBox = new EditBox(this.font, x0 + 8, y0 + 24, (int) (panelW * 0.56), 16, Component.literal("搜索"));
+        searchBox = new EditBox(this.font, x0 + 8, y0 + 24, (int) (panelW * 0.56), 16, Component.literal(L10n.get("projectmemo.picker.search")));
         searchBox.setMaxLength(40);
         searchBox.setValue(searchText);
         searchBox.setResponder(s -> searchText = s);
@@ -61,33 +65,33 @@ public final class MemoMainScreen extends MemoScreenBase {
         MemoData data = MemoClientState.data();
 
         // ── 标题行 ──
-        String titleMain = "⚒ 工程备忘录";
+        String titleMain = "⚒ " + L10n.get("projectmemo.main.title");
         g.drawString(this.font, titleMain, x0 + 8, y0 + 8, UiKit.TEXT, false);
         if (MemoClientState.mirror()) {
-            g.drawString(this.font, "（只读镜像 · 数据来自主服）", x0 + 8 + this.font.width(titleMain) + 4, y0 + 8, UiKit.GOLD, false);
+            g.drawString(this.font, L10n.get("projectmemo.main.mirrorBadge"), x0 + 8 + this.font.width(titleMain) + 4, y0 + 8, UiKit.GOLD, false);
         }
         if (MemoClientState.isReady()) {
             long active = data.projects.stream().filter(p -> "active".equals(p.status)).count();
             long planning = data.projects.stream().filter(p -> "planning".equals(p.status)).count();
             long completed = data.projects.stream().filter(p -> "completed".equals(p.status)).count();
-            String counts = "进行中 " + active + " · 规划 " + planning + " · 已完成 " + completed;
+            String counts = L10n.get("projectmemo.main.counts", active, planning, completed);
             g.drawString(this.font, counts, x0 + panelW - 8 - this.font.width(counts), y0 + 8, UiKit.DIM, false);
         } else {
-            String wait = "等待服务器响应…";
+            String wait = L10n.get("projectmemo.main.waiting");
             g.drawString(this.font, wait, x0 + panelW - 8 - this.font.width(wait), y0 + 8, UiKit.YELLOW, false);
         }
 
         // ── 搜索框右侧：筛选按钮 + 刷新 ──
         int rx = x0 + panelW - 8;
-        UiKit.UiButton refresh = new UiKit.UiButton(rx - 40, y0 + 24, 40, 16, "刷新",
+        UiKit.UiButton refresh = new UiKit.UiButton(rx - 40, y0 + 24, 40, 16, L10n.get("projectmemo.common.refresh"),
                 () -> MemoNetworking.onJoin());
-        refresh.tooltip("重新 hello，拉取全量数据");
+        refresh.tooltip(L10n.get("projectmemo.main.refreshTip"));
         uiButtons.add(refresh);
         fbX = rx - 40 - 56;
         fbY = y0 + 24;
-        UiKit.UiButton filter = new UiKit.UiButton(fbX, fbY, fbW, fbH, FILTERS[filterIndex] + " ▾",
+        UiKit.UiButton filter = new UiKit.UiButton(fbX, fbY, fbW, fbH, filters()[filterIndex] + " ▾",
                 () -> filterOpen = !filterOpen);
-        filter.tooltip("状态筛选（下拉选择）");
+        filter.tooltip(L10n.get("projectmemo.main.filterTip"));
         uiButtons.add(filter);
 
         // ── 列表区 ──
@@ -102,8 +106,9 @@ public final class MemoMainScreen extends MemoScreenBase {
         scroll = clampScroll(scroll, maxScroll);
 
         if (viewRows.isEmpty()) {
-            g.drawString(this.font, MemoClientState.isReady() ? "没有匹配的工程。" : "连接中…",
-                    x0 + panelW / 2 - this.font.width(MemoClientState.isReady() ? "没有匹配的工程。" : "连接中…") / 2,
+            String emptyMsg = MemoClientState.isReady() ? L10n.get("projectmemo.main.noMatch") : L10n.get("projectmemo.main.connecting");
+            g.drawString(this.font, emptyMsg,
+                    x0 + panelW / 2 - this.font.width(emptyMsg) / 2,
                     listTop + 20, UiKit.DIM, false);
         }
 
@@ -122,36 +127,37 @@ public final class MemoMainScreen extends MemoScreenBase {
         if (MemoClientState.canCreate()) {
             int quota = MemoClientState.quotaLeft();
             UiKit.UiButton create = new UiKit.UiButton(x0 + 8, by, 150, 16,
-                    "➕ 新建工程(剩 " + quota + ")", quota > 0 ? this::openCreateDialog : null);
+                    L10n.get("projectmemo.main.create", quota), quota > 0 ? this::openCreateDialog : null);
             if (quota <= 0) create.disabled();
-            create.tooltip("creator 组每日限 " + quota + " 个（服务器时区自然日）");
+            create.tooltip(L10n.get("projectmemo.main.createTip", quota));
             uiButtons.add(create);
         }
         boolean isHome = "main".equals(MemoHome.load());
         UiKit.UiButton home = new UiKit.UiButton(x0 + panelW - 8 - 44 - 64 - 4, by, 64, 16,
-                isHome ? "★ 已是首页" : "设为首页", () -> {
+                isHome ? L10n.get("projectmemo.main.isHome") : L10n.get("projectmemo.main.setHome"), () -> {
                     MemoHome.save("main");
-                    MemoToast.push("已设为首页：按 J 直接打开总览", MemoToast.GREEN);
+                    MemoToast.push(L10n.get("projectmemo.main.homeSet"), MemoToast.GREEN);
                 });
-        home.tooltip("把备忘录总览设为首页，按 J 直达");
+        home.tooltip(L10n.get("projectmemo.main.homeTip"));
         if (isHome) home.disabled();
         uiButtons.add(home);
-        UiKit.UiButton close = new UiKit.UiButton(x0 + panelW - 8 - 44, by, 44, 16, "关闭", this::onClose);
+        UiKit.UiButton close = new UiKit.UiButton(x0 + panelW - 8 - 44, by, 44, 16, L10n.get("projectmemo.common.close"), this::onClose);
         uiButtons.add(close);
 
         // ── 筛选下拉（最后画，盖在最上层） ──
         if (filterOpen) {
             ddX = rx - 40 - 56;
             ddY = y0 + 42;
-            int totalH = FILTERS.length * ddRowH + 4;
+            String[] fs = filters();
+            int totalH = fs.length * ddRowH + 4;
             UiKit.panel(g, ddX, ddY, ddW, totalH);
-            for (int i = 0; i < FILTERS.length; i++) {
+            for (int i = 0; i < fs.length; i++) {
                 int oy = ddY + 2 + i * ddRowH;
                 boolean sel = i == filterIndex;
                 boolean hov = UiKit.inRect(mouseX, mouseY, ddX, oy, ddW, ddRowH);
                 if (sel) g.fill(ddX + 1, oy, ddX + ddW - 1, oy + ddRowH, 0x50FFFFFF);
                 else if (hov) g.fill(ddX + 1, oy, ddX + ddW - 1, oy + ddRowH, 0x30FFFFFF);
-                g.drawString(this.font, FILTERS[i], ddX + 6, oy + 4, sel ? UiKit.GOLD : UiKit.TEXT, false);
+                g.drawString(this.font, fs[i], ddX + 6, oy + 4, sel ? UiKit.GOLD : UiKit.TEXT, false);
             }
         }
     }
@@ -170,14 +176,14 @@ public final class MemoMainScreen extends MemoScreenBase {
 
         List<MemoData.Task> tasks = data.tasksOf(pr.id);
         long done = tasks.stream().filter(t -> "done".equals(t.status)).count();
-        String meta = pr.creator + " · " + UiKit.fmtDateShort(pr.createdAt) + " 开始";
+        String meta = L10n.get("projectmemo.main.startedMeta", pr.creator, UiKit.fmtDateShort(pr.createdAt));
         g.drawString(this.font, UiKit.truncPx(this.font, meta, 120), cx, rowY + 4, UiKit.DIM, false);
-        String prog = "任务 " + done + "/" + tasks.size() + " · 材料 " + data.materialPct(pr.id) + "%";
+        String prog = L10n.get("projectmemo.main.progress", done, tasks.size(), data.materialPct(pr.id));
         g.drawString(this.font, prog, cx, rowY + 13, UiKit.FAINT, false);
         cx += 128;
 
         if (cx + 60 < listRight - 4) {
-            UiKit.UiButton detail = new UiKit.UiButton(listRight - 46, rowY + 3, 40, 16, "详情",
+            UiKit.UiButton detail = new UiKit.UiButton(listRight - 46, rowY + 3, 40, 16, L10n.get("projectmemo.main.detail"),
                     () -> openDetail(pr.id));
             uiButtons.add(detail);
         }
@@ -190,7 +196,7 @@ public final class MemoMainScreen extends MemoScreenBase {
             if (filterIndex == 0) {
                 if ("archived".equals(pr.status)) continue;
             } else {
-                String want = FILTERS[filterIndex];
+                String want = filters()[filterIndex];
                 if (!UiKit.statusCn(pr.status).equals(want)) continue;
             }
             if (!q.isEmpty()) {
@@ -220,7 +226,7 @@ public final class MemoMainScreen extends MemoScreenBase {
     }
 
     private void openCreateDialog() {
-        this.minecraft.setScreen(new MemoInputDialog(this, "新建工程", "工程标题（≤30 字）", "", 30,
+        this.minecraft.setScreen(new MemoInputDialog(this, L10n.get("projectmemo.main.newProjectTitle"), L10n.get("projectmemo.main.newProjectPrompt"), "", 30,
                 title -> MemoClientState.sendAction("create_project", MemoClientState.argsOf("title", title))));
     }
 
@@ -246,9 +252,9 @@ public final class MemoMainScreen extends MemoScreenBase {
         double mouseX = event.x(), mouseY = event.y();
         // 筛选下拉优先处理
         if (filterOpen && event.button() == 0) {
-            if (UiKit.inRect(mouseX, mouseY, ddX, ddY, ddW, FILTERS.length * ddRowH + 4)) {
+            if (UiKit.inRect(mouseX, mouseY, ddX, ddY, ddW, filters().length * ddRowH + 4)) {
                 int idx = (int) ((mouseY - ddY - 2) / ddRowH);
-                if (idx >= 0 && idx < FILTERS.length) {
+                if (idx >= 0 && idx < filters().length) {
                     filterIndex = idx;
                     scroll = 0;
                 }

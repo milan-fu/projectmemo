@@ -45,16 +45,16 @@ public final class MemoTextScreen extends MemoScreenBase {
         int y0 = (this.height - panelH) / 2;
         UiKit.panel(g, x0, y0, panelW, panelH);
         g.drawString(this.font, heading, x0 + 10, y0 + 8, UiKit.TEXT, false);
-        g.drawString(this.font, "可直接输入长文本，自动换行；保存空内容 = 清除", x0 + 10, y0 + 16, UiKit.FAINT, false);
+        g.drawString(this.font, L10n.get("projectmemo.textscreen.hint"), x0 + 10, y0 + 16, UiKit.FAINT, false);
         editor.render(g, mouseX, mouseY);
 
         int by = y0 + panelH - 24;
-        UiKit.UiButton save = new UiKit.UiButton(x0 + 10, by, 52, 16, "保存", () -> {
+        UiKit.UiButton save = new UiKit.UiButton(x0 + 10, by, 52, 16, L10n.get("projectmemo.common.save"), () -> {
             onConfirm.accept(editor.getText().trim());
             this.minecraft.setScreen(backTo);
         });
         uiButtons.add(save);
-        UiKit.UiButton cancel = new UiKit.UiButton(x0 + panelW - 52, by, 44, 16, "返回", () ->
+        UiKit.UiButton cancel = new UiKit.UiButton(x0 + panelW - 52, by, 44, 16, L10n.get("projectmemo.common.back"), () ->
                 this.minecraft.setScreen(backTo));
         uiButtons.add(cancel);
     }

@@ -52,7 +52,7 @@ public final class MemoClientMod implements ClientModInitializer {
                 if (MemoClientState.isReady() && client.player != null) {
                     MemoHome.openHome();
                 } else {
-                    MemoToast.push("未连接备忘录服务器（仅安装了 ProjectMemo 插件的服务器有效）", MemoToast.GOLD);
+                    MemoToast.push(L10n.get("projectmemo.toast.notConnected"), MemoToast.GOLD);
                 }
             }
         });

@@ -39,7 +39,7 @@ public final class MemoItemPickerScreen extends MemoScreenBase {
     private int listX, listY, listW, listH;
 
     public MemoItemPickerScreen(int projectId) {
-        super("添加材料");
+        super(L10n.get("projectmemo.picker.title"));
         this.projectId = projectId;
     }
 
@@ -103,15 +103,15 @@ public final class MemoItemPickerScreen extends MemoScreenBase {
         int x0 = (this.width - panelW) / 2;
         int y0 = (this.height - panelH) / 2;
 
-        searchBox = addEditBox(new EditBox(this.font, x0 + 10, y0 + 22, panelW - 20, 16, Component.literal("搜索")));
+        searchBox = addEditBox(new EditBox(this.font, x0 + 10, y0 + 22, panelW - 20, 16, Component.literal(L10n.get("projectmemo.picker.search"))));
         searchBox.setMaxLength(40);
         searchBox.setValue(query);
         searchBox.setResponder(s -> { query = s; refilter(); });
 
         int qy = y0 + panelH - 80;
-        boxBox = addEditBox(new EditBox(this.font, x0 + 66, qy, 44, 16, Component.literal("盒")));
-        stackBox = addEditBox(new EditBox(this.font, x0 + 136, qy, 44, 16, Component.literal("组")));
-        pieceBox = addEditBox(new EditBox(this.font, x0 + 206, qy, 44, 16, Component.literal("个")));
+        boxBox = addEditBox(new EditBox(this.font, x0 + 66, qy, 44, 16, Component.literal(L10n.get("projectmemo.unit.boxShort"))));
+        stackBox = addEditBox(new EditBox(this.font, x0 + 136, qy, 44, 16, Component.literal(L10n.get("projectmemo.unit.stackShort"))));
+        pieceBox = addEditBox(new EditBox(this.font, x0 + 206, qy, 44, 16, Component.literal(L10n.get("projectmemo.unit.pieceShort"))));
         boxBox.setValue("0");
         stackBox.setValue("0");
         pieceBox.setValue("0");
@@ -127,7 +127,7 @@ public final class MemoItemPickerScreen extends MemoScreenBase {
         int y0 = (this.height - panelH) / 2;
         UiKit.panel(g, x0, y0, panelW, panelH);
 
-        g.drawString(this.font, "添加材料行 · 搜索支持中文名与物品 ID", x0 + 10, y0 + 8, UiKit.TEXT, false);
+        g.drawString(this.font, L10n.get("projectmemo.picker.header"), x0 + 10, y0 + 8, UiKit.TEXT, false);
 
         // ── 搜索结果列表（固定区域，不与下方重叠） ──
         listX = x0 + 10;
@@ -139,7 +139,7 @@ public final class MemoItemPickerScreen extends MemoScreenBase {
         scroll = clampScroll(scroll, maxScroll);
 
         if (results.isEmpty()) {
-            g.drawString(this.font, "（没有匹配的物品）", listX + 4, listY + 6, UiKit.FAINT, false);
+            g.drawString(this.font, L10n.get("projectmemo.picker.noMatch"), listX + 4, listY + 6, UiKit.FAINT, false);
         }
         g.enableScissor(listX, listY, listX + listW, listY + listH);
         for (int i = 0; i < results.size(); i++) {
@@ -161,35 +161,35 @@ public final class MemoItemPickerScreen extends MemoScreenBase {
 
         // ── 列表下方固定信息区（依次排布，不重叠） ──
         int infoY = y0 + panelH - 126;
-        g.drawString(this.font, results.size() >= 300 ? "结果过多（上限 300），请输入更精确的关键词"
-                        : ("匹配 " + results.size() + " 项 · 点击上方列表选择物品"),
+        g.drawString(this.font, results.size() >= 300 ? L10n.get("projectmemo.picker.tooMany")
+                        : L10n.get("projectmemo.picker.matchCount", results.size()),
                 listX, infoY, UiKit.FAINT, false);
 
         int selY = y0 + panelH - 110;
         ItemEntry selEntry = selected >= 0 && selected < results.size() ? results.get(selected) : null;
         if (selEntry != null) {
-            String selText = "已选: " + (selEntry.zh.isEmpty() ? selEntry.id : selEntry.zh + " (" + selEntry.id + ")")
-                    + "  每堆 " + selEntry.maxStack + " 个";
+            String selText = L10n.get("projectmemo.picker.selected",
+                    (selEntry.zh.isEmpty() ? selEntry.id : selEntry.zh + " (" + selEntry.id + ")"), selEntry.maxStack);
             g.drawString(this.font, UiKit.truncPx(this.font, selText, panelW - 20), x0 + 10, selY, UiKit.GOLD, false);
         } else {
-            g.drawString(this.font, "尚未选择物品", x0 + 10, selY, UiKit.FAINT, false);
+            g.drawString(this.font, L10n.get("projectmemo.picker.notSelected"), x0 + 10, selY, UiKit.FAINT, false);
         }
 
         // ── 数量区 ──
         int qy = y0 + panelH - 80;
-        g.drawString(this.font, "盒", x0 + 50, qy + 4, UiKit.DIM, false);
-        g.drawString(this.font, "组", x0 + 120, qy + 4, UiKit.DIM, false);
-        g.drawString(this.font, "个", x0 + 190, qy + 4, UiKit.DIM, false);
+        g.drawString(this.font, L10n.get("projectmemo.unit.boxShort"), x0 + 50, qy + 4, UiKit.DIM, false);
+        g.drawString(this.font, L10n.get("projectmemo.unit.stackShort"), x0 + 120, qy + 4, UiKit.DIM, false);
+        g.drawString(this.font, L10n.get("projectmemo.unit.pieceShort"), x0 + 190, qy + 4, UiKit.DIM, false);
         int total = currentTotal(selEntry);
-        g.drawString(this.font, "= 共 " + (selEntry == null ? UiKit.fmtAmount(total)
-                : UiKit.fmtAmount(total, selEntry.maxStack)), x0 + 262, qy + 4,
+        g.drawString(this.font, L10n.get("projectmemo.picker.total", (selEntry == null ? UiKit.fmtAmount(total)
+                : UiKit.fmtAmount(total, selEntry.maxStack))), x0 + 262, qy + 4,
                 total > 0 ? UiKit.GREEN : UiKit.DIM, false);
 
         int by = y0 + panelH - 24;
-        UiKit.UiButton ok = new UiKit.UiButton(x0 + 10, by, 72, 16, "确定添加", this::confirmAdd);
+        UiKit.UiButton ok = new UiKit.UiButton(x0 + 10, by, 72, 16, L10n.get("projectmemo.picker.confirmAdd"), this::confirmAdd);
         if (selEntry == null || total <= 0) ok.disabled();
         uiButtons.add(ok);
-        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 52, by, 44, 16, "返回", () ->
+        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 52, by, 44, 16, L10n.get("projectmemo.common.back"), () ->
                 this.minecraft.setScreen(new ProjectDetailScreen(projectId, 3)));
         uiButtons.add(back);
     }
@@ -211,7 +211,7 @@ public final class MemoItemPickerScreen extends MemoScreenBase {
         ItemEntry e = results.get(selected);
         int total = currentTotal(e);
         if (total <= 0) {
-            MemoToast.push("数量必须大于 0", MemoToast.RED);
+            MemoToast.push(L10n.get("projectmemo.picker.positiveOnly"), MemoToast.RED);
             return;
         }
         JsonObject args = MemoClientState.argsOf("project", projectId, "item", e.id);

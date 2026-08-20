@@ -41,7 +41,7 @@ public final class MemoImportsScreen extends MemoScreenBase {
     private List<LocalEntry> localFiles; // null=未扫描
 
     public MemoImportsScreen(int projectId) {
-        super("投影导入");
+        super(L10n.get("projectmemo.imports.title"));
         this.projectId = projectId;
     }
 
@@ -68,7 +68,7 @@ public final class MemoImportsScreen extends MemoScreenBase {
                         if (!se.file.isEmpty()) out.add(se);
                     }
                 } catch (Exception e) {
-                    MemoToast.push("共享投影列表解析失败", MemoToast.RED);
+                    MemoToast.push(L10n.get("projectmemo.imports.listParseFail"), MemoToast.RED);
                 }
             }
             serverFiles = out;
@@ -100,7 +100,7 @@ public final class MemoImportsScreen extends MemoScreenBase {
                     out.add(new LocalEntry(p.toFile(), rel));
                 }
             } catch (Exception e) {
-                MemoToast.push("扫描本地投影失败: " + e.getMessage(), MemoToast.RED);
+                MemoToast.push(L10n.get("projectmemo.imports.scanFail", e.getMessage()), MemoToast.RED);
             }
         }
         localFiles = out;
@@ -114,19 +114,19 @@ public final class MemoImportsScreen extends MemoScreenBase {
         int y0 = (this.height - panelH) / 2;
         UiKit.panel(g, x0, y0, panelW, panelH);
 
-        g.drawString(this.font, "📥 投影导入 · 工程 #" + projectId, x0 + 10, y0 + 8, UiKit.TEXT, false);
+        g.drawString(this.font, L10n.get("projectmemo.imports.header", projectId), x0 + 10, y0 + 8, UiKit.TEXT, false);
 
         // 来源切换
-        UiKit.UiButton tabShared = new UiKit.UiButton(x0 + 10, y0 + 22, 90, 16, "共享投影库", () -> { source = 0; scroll = 0; });
+        UiKit.UiButton tabShared = new UiKit.UiButton(x0 + 10, y0 + 22, 90, 16, L10n.get("projectmemo.imports.tabShared"), () -> { source = 0; scroll = 0; });
         uiButtons.add(tabShared);
         if (source == 0) g.fill(x0 + 10, y0 + 22, x0 + 100, y0 + 38, 0x50FFFFFF);
-        UiKit.UiButton tabLocal = new UiKit.UiButton(x0 + 104, y0 + 22, 90, 16, "本地投影", () -> {
+        UiKit.UiButton tabLocal = new UiKit.UiButton(x0 + 104, y0 + 22, 90, 16, L10n.get("projectmemo.imports.tabLocal"), () -> {
             source = 1; scroll = 0;
             if (localFiles == null) scanLocal();
         });
         uiButtons.add(tabLocal);
         if (source == 1) g.fill(x0 + 104, y0 + 22, x0 + 194, y0 + 38, 0x50FFFFFF);
-        UiKit.UiButton refresh = new UiKit.UiButton(x0 + panelW - 50, y0 + 22, 40, 16, "刷新", () -> {
+        UiKit.UiButton refresh = new UiKit.UiButton(x0 + panelW - 50, y0 + 22, 40, 16, L10n.get("projectmemo.common.refresh"), () -> {
             if (source == 0) requestServerList();
             else scanLocal();
         });
@@ -139,20 +139,20 @@ public final class MemoImportsScreen extends MemoScreenBase {
 
         if (source == 0) {
             g.drawString(this.font, UiKit.truncPx(this.font,
-                    "来自服务器共享原理图（游戏内 Syncmatica 共享的投影）", panelW - 20), x0 + 10, hintY, UiKit.FAINT, false);
+                    L10n.get("projectmemo.imports.sharedHint"), panelW - 20), x0 + 10, hintY, UiKit.FAINT, false);
             if (serverFiles == null) {
-                g.drawString(this.font, "正在获取共享投影列表…", x0 + 12, listTop + 12, UiKit.DIM, false);
+                g.drawString(this.font, L10n.get("projectmemo.imports.fetching"), x0 + 12, listTop + 12, UiKit.DIM, false);
             } else if (serverFiles.isEmpty()) {
-                g.drawString(this.font, "共享投影库是空的", x0 + 12, listTop + 12, UiKit.DIM, false);
-                g.drawString(this.font, "（在游戏内把投影放置后，用 Syncmatica 的「分享」功能共享，会出现在这里）",
+                g.drawString(this.font, L10n.get("projectmemo.imports.sharedEmpty"), x0 + 12, listTop + 12, UiKit.DIM, false);
+                g.drawString(this.font, L10n.get("projectmemo.imports.sharedEmptyHint"),
                         x0 + 12, listTop + 26, UiKit.FAINT, false);
             } else {
                 drawList(g, mouseX, mouseY, listTop, listBottom, serverFiles.size(), i -> {
                     ServerEntry se = serverFiles.get(i);
                     return new Row(se.name.isEmpty() ? se.file : se.name,
                             (se.owner.isEmpty() ? "" : "by " + se.owner + "  ") + se.file,
-                            () -> this.minecraft.setScreen(new MemoConfirmDialog(this, "导入共享投影",
-                                    "把「" + (se.name.isEmpty() ? se.file : se.name) + "」的方块统计导入为材料行？", false,
+                            () -> this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.imports.importSharedTitle"),
+                                    L10n.get("projectmemo.imports.importSharedMsg", (se.name.isEmpty() ? se.file : se.name)), false,
                                     () -> {
                                         com.google.gson.JsonObject args =
                                                 MemoClientState.argsOf("project", projectId, "file", se.file);
@@ -164,21 +164,21 @@ public final class MemoImportsScreen extends MemoScreenBase {
             }
         } else {
             g.drawString(this.font, UiKit.truncPx(this.font,
-                    "本机 Litematica 目录（含子文件夹）: " + localDir().getAbsolutePath(), panelW - 20),
+                    L10n.get("projectmemo.imports.localHint", localDir().getAbsolutePath()), panelW - 20),
                     x0 + 10, hintY, UiKit.FAINT, false);
             if (localFiles == null) scanLocal();
             if (localFiles.isEmpty()) {
-                g.drawString(this.font, "schematics 目录里没有 .litematic 文件（含子文件夹）", x0 + 12, listTop + 12, UiKit.DIM, false);
+                g.drawString(this.font, L10n.get("projectmemo.imports.localEmpty"), x0 + 12, listTop + 12, UiKit.DIM, false);
             } else {
                 drawList(g, mouseX, mouseY, listTop, listBottom, localFiles.size(), i -> {
                     LocalEntry le = localFiles.get(i);
-                    return new Row(le.label, (le.file.length() / 1024) + " KB · 客户端本地解析",
+                    return new Row(le.label, (le.file.length() / 1024) + " KB · " + L10n.get("projectmemo.imports.localParse"),
                             () -> importLocal(le.file));
                 });
             }
         }
 
-        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 52, y0 + panelH - 22, 44, 16, "返回", () ->
+        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 52, y0 + panelH - 22, 44, 16, L10n.get("projectmemo.common.back"), () ->
                 this.minecraft.setScreen(new ProjectDetailScreen(projectId, 3)));
         uiButtons.add(back);
     }
@@ -206,7 +206,7 @@ public final class MemoImportsScreen extends MemoScreenBase {
             if (i % 2 == 0) g.fill(listX, rowY, listX + listW, rowY + ROW_H, 0x10FFFFFF);
             g.drawString(this.font, UiKit.truncPx(this.font, row.title, listW - 150), listX + 4, rowY + 2, UiKit.TEXT, false);
             g.drawString(this.font, UiKit.truncPx(this.font, row.sub, listW - 150), listX + 4, rowY + 12, UiKit.FAINT, false);
-            UiKit.UiButton imp = new UiKit.UiButton(listX + listW - 48, rowY + 3, 44, 15, "导入", row.action);
+            UiKit.UiButton imp = new UiKit.UiButton(listX + listW - 48, rowY + 3, 44, 15, L10n.get("projectmemo.imports.importBtn"), row.action);
             uiButtons.add(imp);
         }
         g.disableScissor();
@@ -218,20 +218,17 @@ public final class MemoImportsScreen extends MemoScreenBase {
         try {
             parsed = ClientLitematic.parse(f);
         } catch (Exception e) {
-            MemoToast.push("解析失败: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()), MemoToast.RED);
+            MemoToast.push(L10n.get("projectmemo.imports.parseFail") + ": " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()), MemoToast.RED);
             return;
         }
         if (parsed.error != null) {
             MemoToast.push(parsed.error, MemoToast.RED);
             return;
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("解析完成：").append(parsed.counts.size()).append(" 种物品，共 ")
-          .append(parsed.totalBlocks).append(" 方块");
-        if (parsed.skippedNonItem > 0) sb.append("（跳过 ").append(parsed.skippedNonItem).append(" 个非物品方块）");
-        String summary = sb.toString();
-        this.minecraft.setScreen(new MemoConfirmDialog(this, "导入本地投影",
-                f.getName() + "\n" + summary + "\n导入为材料行？", false, () -> {
+        String summary = L10n.get("projectmemo.imports.parsedSummary", parsed.counts.size(), parsed.totalBlocks)
+                + (parsed.skippedNonItem > 0 ? L10n.get("projectmemo.imports.skipped", parsed.skippedNonItem) : "");
+        this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.imports.importLocalTitle"),
+                f.getName() + "\n" + summary + "\n" + L10n.get("projectmemo.imports.importLocalMsg"), false, () -> {
             JsonArray items = new JsonArray();
             for (var e : parsed.counts.entrySet()) {
                 JsonObject o = new JsonObject();

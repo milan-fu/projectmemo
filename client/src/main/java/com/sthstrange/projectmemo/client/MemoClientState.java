@@ -129,7 +129,7 @@ public final class MemoClientState {
             return;
         }
         if (!ClientPlayNetworking.canSend(MemoPayload.TYPE)) {
-            MemoToast.push("未连接到 memo-server", MemoToast.RED);
+            MemoToast.push(L10n.get("projectmemo.toast.noServer"), MemoToast.RED);
             return;
         }
         int nonce = nonceGen.getAndIncrement();
@@ -161,18 +161,22 @@ public final class MemoClientState {
                 handler.accept(ack);
                 return;
             } catch (Exception e) {
-                MemoToast.push("内部错误: " + e.getMessage(), MemoToast.RED);
+                MemoToast.push(L10n.get("projectmemo.toast.internalError", e.getMessage()), MemoToast.RED);
                 return;
             }
         }
         if (ok) {
-            MemoToast.push(message != null && !message.isEmpty() ? message : "操作完成", MemoToast.GREEN);
+            String shown = message == null || message.isEmpty() ? L10n.get("projectmemo.toast.done")
+                    : (MemoLocal.isLocal() ? message : ServerErrors.translate(message));
+            MemoToast.push(shown, MemoToast.GREEN);
         } else {
-            // "找不到"多半是本地数据过期：静默请求一次全量同步自愈（同步到达后重试即可）
+            // "找不到"多半是本地数据过期：静默请求一次全量同步自愈（同步到达后重试即可）——用原文判断
             if (error != null && error.contains("找不到") && !MemoLocal.isLocal()) {
                 sendAction("request_sync", new JsonObject(), ack2 -> { });
             }
-            MemoToast.push(error != null && !error.isEmpty() ? error : "操作失败", MemoToast.RED);
+            String shown = error == null || error.isEmpty() ? L10n.get("projectmemo.toast.failed")
+                    : (MemoLocal.isLocal() ? error : ServerErrors.translate(error));
+            MemoToast.push(shown, MemoToast.RED);
         }
     }
 

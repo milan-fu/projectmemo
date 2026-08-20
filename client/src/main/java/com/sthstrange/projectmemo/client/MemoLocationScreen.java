@@ -18,7 +18,7 @@ public final class MemoLocationScreen extends MemoScreenBase {
     private String snapX = "", snapY = "", snapZ = "", snapNote = "";
 
     public MemoLocationScreen(int projectId) {
-        super("编辑选址");
+        super(L10n.get("projectmemo.loc.title"));
         this.projectId = projectId;
     }
 
@@ -62,7 +62,7 @@ public final class MemoLocationScreen extends MemoScreenBase {
         yBox.setValue(String.valueOf(pr.locY));
         zBox.setValue(String.valueOf(pr.locZ));
 
-        noteBox = addEditBox(new EditBox(this.font, x0 + 50, y0 + 70, panelW - 60, 16, net.minecraft.network.chat.Component.literal("备注")));
+        noteBox = addEditBox(new EditBox(this.font, x0 + 50, y0 + 70, panelW - 60, 16, net.minecraft.network.chat.Component.literal(L10n.get("projectmemo.loc.noteField"))));
         noteBox.setMaxLength(60);
         noteBox.setValue(pr.locNote);
 
@@ -80,15 +80,15 @@ public final class MemoLocationScreen extends MemoScreenBase {
         int y0 = (this.height - panelH) / 2;
         UiKit.panel(g, x0, y0, panelW, panelH);
 
-        g.drawString(this.font, "编辑选址 · 《" + UiKit.trunc(pr.title, 16) + "》", x0 + 10, y0 + 8, UiKit.TEXT, false);
+        g.drawString(this.font, L10n.get("projectmemo.loc.header", UiKit.trunc(pr.title, 16)), x0 + 10, y0 + 8, UiKit.TEXT, false);
         // 世界：显示玩家当前所在世界（保存时选址就记这个世界）
         String curWorld = UiKit.worldCn(null);
         if (Minecraft.getInstance().player != null) {
             curWorld = UiKit.worldCn(Minecraft.getInstance().player.level().dimension().identifier().toString());
         }
         String worldInfo = pr.locWorld.isEmpty()
-                ? "当前世界: " + curWorld + "（保存后记为这个世界）"
-                : "已存世界: " + UiKit.worldCn(pr.locWorld) + "（再保存将更新为当前世界: " + curWorld + "）";
+                ? L10n.get("projectmemo.loc.worldCurrent", curWorld)
+                : L10n.get("projectmemo.loc.worldSaved", UiKit.worldCn(pr.locWorld), curWorld);
         g.drawString(this.font, worldInfo, x0 + 10, y0 + 22, UiKit.DIM, false);
         if (pr.locLocked) {
             g.drawString(this.font, "🔒", x0 + 10 + this.font.width(worldInfo) + 6, y0 + 22, UiKit.GOLD, false);
@@ -97,11 +97,11 @@ public final class MemoLocationScreen extends MemoScreenBase {
         g.drawString(this.font, "X", x0 + 40, y0 + 50, UiKit.DIM, false);
         g.drawString(this.font, "Y", x0 + 130, y0 + 50, UiKit.DIM, false);
         g.drawString(this.font, "Z", x0 + 220, y0 + 50, UiKit.DIM, false);
-        g.drawString(this.font, "备注", x0 + 10, y0 + 74, UiKit.DIM, false);
+        g.drawString(this.font, L10n.get("projectmemo.loc.noteLabel"), x0 + 10, y0 + 74, UiKit.DIM, false);
 
         boolean locked = pr.locLocked;
         int by = y0 + 96;
-        UiKit.UiButton here = new UiKit.UiButton(x0 + 10, by, 62, 16, "取脚下坐标", locked ? null : () -> {
+        UiKit.UiButton here = new UiKit.UiButton(x0 + 10, by, 62, 16, L10n.get("projectmemo.loc.here"), locked ? null : () -> {
             if (Minecraft.getInstance().player == null) return;
             var pos = Minecraft.getInstance().player.blockPosition();
             xBox.setValue(String.valueOf(pos.getX()));
@@ -109,26 +109,26 @@ public final class MemoLocationScreen extends MemoScreenBase {
             zBox.setValue(String.valueOf(pos.getZ()));
         });
         if (locked) here.disabled();
-        here.tooltip("把坐标填为当前脚下位置");
+        here.tooltip(L10n.get("projectmemo.loc.hereTip"));
         uiButtons.add(here);
 
-        UiKit.UiButton lockBtn = new UiKit.UiButton(x0 + 158, by, 66, 16, locked ? "🔓 解锁" : "🔒 锁定", () -> {
+        UiKit.UiButton lockBtn = new UiKit.UiButton(x0 + 158, by, 66, 16, locked ? L10n.get("projectmemo.common.unlock") : L10n.get("projectmemo.common.lock"), () -> {
             JsonObject args = MemoClientState.argsOf("project", pr.id);
             args.addProperty("locked", !locked);
             MemoClientState.sendAction("set_loc_lock", args);
             applyLockToBoxes(!locked); // 输入框立刻变灰/变白，不用退出重进
         });
-        lockBtn.tooltip(locked ? "解锁后才能修改选址" : "锁定选址，防止误改");
+        lockBtn.tooltip(locked ? L10n.get("projectmemo.loc.unlockTip") : L10n.get("projectmemo.loc.lockTip"));
         uiButtons.add(lockBtn);
 
-        UiKit.UiButton hideBtn = new UiKit.UiButton(x0 + 230, by, 80, 16, pr.locHidden ? "取消隐藏坐标" : "隐藏坐标", locked ? null : () ->
+        UiKit.UiButton hideBtn = new UiKit.UiButton(x0 + 230, by, 80, 16, pr.locHidden ? L10n.get("projectmemo.loc.unhide") : L10n.get("projectmemo.loc.hide"), locked ? null : () ->
                 MemoClientState.sendAction("set_loc_hidden", MemoClientState.argsOf("project", pr.id)));
         if (locked) hideBtn.disabled();
-        hideBtn.tooltip(pr.locHidden ? "当前已隐藏：普通玩家看不到坐标" : "隐藏后普通玩家看不到坐标");
+        hideBtn.tooltip(pr.locHidden ? L10n.get("projectmemo.loc.unhideTip") : L10n.get("projectmemo.loc.hideTip"));
         uiButtons.add(hideBtn);
 
         int by2 = y0 + panelH - 24;
-        UiKit.UiButton save = new UiKit.UiButton(x0 + 10, by2, 52, 16, "保存", locked ? null : () -> {
+        UiKit.UiButton save = new UiKit.UiButton(x0 + 10, by2, 52, 16, L10n.get("projectmemo.common.save"), locked ? null : () -> {
             try {
                 int x = Integer.parseInt(xBox.getValue().trim());
                 int y = Integer.parseInt(yBox.getValue().trim());
@@ -139,35 +139,36 @@ public final class MemoLocationScreen extends MemoScreenBase {
                 args.addProperty("note", noteBox.getValue().trim());
                 MemoClientState.sendAction("set_location_manual", args);
                 takeSnapshot(); // 保存后不再算"未保存修改"
-                MemoToast.push("选址已保存", MemoToast.GREEN);
+                MemoToast.push(L10n.get("projectmemo.loc.saved"), MemoToast.GREEN);
             } catch (NumberFormatException e) {
-                MemoToast.push("坐标必须是整数", MemoToast.RED);
+                MemoToast.push(L10n.get("projectmemo.loc.intOnly"), MemoToast.RED);
             }
         });
         if (locked) save.disabled();
         uiButtons.add(save);
 
-        UiKit.UiButton clear = new UiKit.UiButton(x0 + 70, by2, 52, 16, "清除", locked ? null : () ->
-                this.minecraft.setScreen(new MemoConfirmDialog(this, "清除选址", "清除该工程的选址与投影原点？", true, () -> {
+        UiKit.UiButton clear = new UiKit.UiButton(x0 + 70, by2, 52, 16, L10n.get("projectmemo.common.clear"), locked ? null : () ->
+                this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.loc.clearTitle"), L10n.get("projectmemo.loc.clearMsg"), true, () -> {
                     MemoClientState.sendAction("clear_location", MemoClientState.argsOf("project", pr.id));
                     this.minecraft.setScreen(new ProjectDetailScreen(projectId));
                 })));
         if (locked) clear.disabled();
         uiButtons.add(clear);
 
-        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by2, 52, 16, "返回", this::tryLeave);
+        UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 62, by2, 52, 16, L10n.get("projectmemo.common.back"), this::tryLeave);
         uiButtons.add(back);
 
         if (dirty()) {
-            g.drawString(this.font, "● 有未保存的修改", x0 + panelW - 10 - this.font.width("● 有未保存的修改"), y0 + 8, UiKit.GOLD, false);
+            String dirtyMark = L10n.get("projectmemo.loc.dirty");
+            g.drawString(this.font, dirtyMark, x0 + panelW - 10 - this.font.width(dirtyMark), y0 + 8, UiKit.GOLD, false);
         }
     }
 
     /** 退出：有未保存修改时二次确认 */
     private void tryLeave() {
         if (dirty()) {
-            this.minecraft.setScreen(new MemoConfirmDialog(this, "未保存的修改",
-                    "选址修改还没保存，确定退出？\n（坐标/备注的改动将丢失）", true,
+            this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.loc.unsavedTitle"),
+                    L10n.get("projectmemo.loc.unsavedMsg"), true,
                     () -> this.minecraft.setScreen(new ProjectDetailScreen(projectId))));
         } else {
             this.minecraft.setScreen(new ProjectDetailScreen(projectId));

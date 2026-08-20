@@ -51,7 +51,7 @@ public final class MemoNetworking {
                     break;
             }
         } catch (Exception e) {
-            MemoToast.push("备忘录数据解析失败: " + e.getMessage(), MemoToast.RED);
+            MemoToast.push(L10n.get("projectmemo.toast.dataParseError", e.getMessage()), MemoToast.RED);
         }
     }
 }

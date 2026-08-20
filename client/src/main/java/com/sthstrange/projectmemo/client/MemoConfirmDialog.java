@@ -48,12 +48,12 @@ public final class MemoConfirmDialog extends Screen {
         }
 
         buttons.clear();
-        UiKit.UiButton ok = new UiKit.UiButton(x0 + panelW - 108, y0 + panelH - 24, 46, 16, "确认", () -> {
+        UiKit.UiButton ok = new UiKit.UiButton(x0 + panelW - 108, y0 + panelH - 24, 46, 16, L10n.get("projectmemo.common.confirm"), () -> {
             Minecraft.getInstance().setScreen(backTo);
             onConfirm.run();
         });
         if (danger) ok.danger();
-        UiKit.UiButton cancel = new UiKit.UiButton(x0 + panelW - 56, y0 + panelH - 24, 46, 16, "取消", this::onClose);
+        UiKit.UiButton cancel = new UiKit.UiButton(x0 + panelW - 56, y0 + panelH - 24, 46, 16, L10n.get("projectmemo.common.cancel"), this::onClose);
         buttons.add(ok);
         buttons.add(cancel);
         for (UiKit.UiButton b : buttons) UiKit.button(g, this.font, b, mouseX, mouseY);
