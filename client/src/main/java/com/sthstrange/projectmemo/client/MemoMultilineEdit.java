@@ -1,8 +1,10 @@
 package com.sthstrange.projectmemo.client;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.util.StringUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -116,6 +118,14 @@ public final class MemoMultilineEdit {
     public boolean keyPressed(KeyEvent e) {
         if (!focused) return false;
         int key = e.key();
+        // 粘贴：Ctrl+V / Shift+Insert（原版 EditBox 同款；过滤非法字符、保留换行、受 300 字上限）
+        boolean ctrl = (e.modifiers() & 0x2) != 0;   // GLFW_MOD_CONTROL
+        boolean shift = (e.modifiers() & 0x1) != 0;  // GLFW_MOD_SHIFT
+        if ((ctrl && key == 86) || (shift && key == 260)) { // V / INSERT
+            String clip = Minecraft.getInstance().keyboardHandler.getClipboard();
+            if (clip != null && !clip.isEmpty()) insertFiltered(clip);
+            return true;
+        }
         if (key == 259) { // backspace
             if (cursor > 0) {
                 text = text.substring(0, cursor - 1) + text.substring(cursor);
@@ -155,6 +165,21 @@ public final class MemoMultilineEdit {
         if (key == 268) { cursor = 0; ensureCursorVisible(); return true; }      // home
         if (key == 269) { cursor = text.length(); ensureCursorVisible(); return true; } // end
         return false;
+    }
+
+    /** 粘贴用：逐码点过滤（聊天允许字符 + 换行），插入到光标处，遵守 300 字上限 */
+    private void insertFiltered(String s) {
+        for (int i = 0; i < s.length(); ) {
+            int cp = s.codePointAt(i);
+            i += Character.charCount(cp);
+            if (text.length() >= 300) break;
+            if (cp != '\n' && !StringUtil.isAllowedChatCharacter(cp)) continue;
+            String cs = new String(Character.toChars(cp));
+            text = text.substring(0, cursor) + cs + text.substring(cursor);
+            cursor += cs.length();
+        }
+        rebuild();
+        ensureCursorVisible();
     }
 
     public boolean charTyped(int codepoint) {

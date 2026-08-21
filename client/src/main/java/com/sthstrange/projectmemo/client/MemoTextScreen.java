@@ -33,8 +33,10 @@ public final class MemoTextScreen extends MemoScreenBase {
         int panelH = Math.min(260, this.height - 20);
         int x0 = (this.width - panelW) / 2;
         int y0 = (this.height - panelH) / 2;
+        // 窗口缩放会重建控件：先取旧内容再重建，避免输入丢失（首次进入用初始值）
+        String keep = editor == null ? initial : editor.getText();
         editor = new MemoMultilineEdit(this.font, x0 + 12, y0 + 26, panelW - 24, panelH - 62);
-        editor.setText(initial);
+        editor.setText(keep);
     }
 
     @Override
