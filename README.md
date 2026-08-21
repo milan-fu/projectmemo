@@ -33,7 +33,7 @@
 ### 客户端模组（Fabric 1.21.11）
 
 1. 安装 [Fabric Loader](https://fabricmc.net/) + [Fabric API](https://modrinth.com/mod/fabric-api)（**不需要 malilib**）
-2. `projectmemo-client-1.1.2.jar` 放入 `.minecraft/versions/<版本>/mods/` 或 `.minecraft/mods/`（下载：[GitHub Releases](https://github.com/milan-fu/projectmemo/releases)，历史版本同页）
+2. `projectmemo-client-1.1.3.jar` 放入 `.minecraft/versions/<版本>/mods/` 或 `.minecraft/mods/`（下载：[GitHub Releases](https://github.com/milan-fu/projectmemo/releases)，历史版本同页）
 3. 进入安装了插件的服务器，按 **J** 打开面板
 4. 单人游戏直接进入即可使用（本地模式，全功能）
 
