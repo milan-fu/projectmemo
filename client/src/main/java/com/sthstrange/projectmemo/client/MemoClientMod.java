@@ -48,6 +48,7 @@ public final class MemoClientMod implements ClientModInitializer {
 
         // 快捷键（默认 J——M 是投影的；可在 选项→按键 里改）：打开「设为首页」记住的页面
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            MemoNetworking.tick(); // hello 重试（init 未到达时自愈）
             while (openKey.consumeClick()) {
                 if (MemoClientState.isReady() && client.player != null) {
                     MemoHome.openHome();

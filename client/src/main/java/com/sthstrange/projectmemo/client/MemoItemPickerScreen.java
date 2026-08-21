@@ -1,6 +1,7 @@
 package com.sthstrange.projectmemo.client;
 
 import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.resources.language.I18n;
@@ -27,8 +28,9 @@ public final class MemoItemPickerScreen extends MemoScreenBase {
         ItemEntry(String id, String zh, int maxStack) { this.id = id; this.zh = zh; this.maxStack = maxStack; }
     }
 
-    private static List<ItemEntry> allItems; // 懒加载缓存
+    private static List<ItemEntry> allItems; // 懒加载缓存（物品本地化名，跟随客户端语言）
     private static Map<String, String> zhById;
+    private static String cachedLang = "";
 
     private final int projectId;
     private String query = "";
@@ -44,7 +46,11 @@ public final class MemoItemPickerScreen extends MemoScreenBase {
     }
 
     private static List<ItemEntry> allItems() {
+        // 客户端语言变化（设置里切语言不重启）时重建缓存，否则物品名停留在旧语言
+        String lang = Minecraft.getInstance().options.languageCode;
+        if (allItems != null && !lang.equals(cachedLang)) allItems = null;
         if (allItems == null) {
+            cachedLang = lang;
             allItems = new ArrayList<>();
             zhById = new HashMap<>();
             for (Item item : BuiltInRegistries.ITEM) {

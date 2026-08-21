@@ -33,16 +33,17 @@ public final class MemoConfirmDialog extends Screen {
         // 1.21.11: renderBackground 会重复应用帧模糊导致崩溃 -> 自绘深色遮罩
         g.fill(0, 0, this.width, this.height, 0xD0080810);
         int panelW = Math.min(300, this.width - 40);
-        int panelH = 80;
+        List<net.minecraft.util.FormattedCharSequence> lines =
+                this.font.split(Component.literal(message == null ? "" : message), panelW - 20);
+        // 长消息支持：最多显示 4 行，面板高度随行数自适应（旧版固定 2 行，第 3 行起被静默截断）
+        int shown = Math.min(4, lines.size());
+        int panelH = Math.min(this.height - 20, 56 + Math.max(1, shown) * 11);
         int x0 = (this.width - panelW) / 2;
         int y0 = (this.height - panelH) / 2;
         UiKit.panel(g, x0, y0, panelW, panelH);
         g.drawString(this.font, heading, x0 + 10, y0 + 10, danger ? UiKit.RED : UiKit.TEXT, false);
-        // 简单换行
-        List<net.minecraft.util.FormattedCharSequence> lines =
-                this.font.split(Component.literal(message == null ? "" : message), panelW - 20);
         int ly = y0 + 26;
-        for (int i = 0; i < Math.min(2, lines.size()); i++) {
+        for (int i = 0; i < shown; i++) {
             g.drawString(this.font, lines.get(i), x0 + 10, ly, UiKit.DIM, false);
             ly += 11;
         }

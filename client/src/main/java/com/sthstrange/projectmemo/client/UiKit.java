@@ -51,7 +51,19 @@ public final class UiKit {
         if (!b.enabled) color = 0xFF55555C;
         else if (b.danger) color = hover ? 0xFFFFB0B0 : 0xFFFF8080;
         else color = hover ? 0xFFFFFFFF : 0xFFD0D0D8;
-        g.drawCenteredString(font, b.label, b.x + b.w / 2, b.y + (b.h - 8) / 2 + 1, color);
+        int maxW = b.w - 4;
+        int tw = font.width(b.label);
+        if (tw > maxW && tw > 0) {
+            // 文案超宽（英文界面常见）：等比缩小字号画进按钮，最低 50%
+            float scale = Math.max(0.5f, (float) maxW / tw);
+            g.pose().pushMatrix();
+            g.pose().translate((float) (b.x + b.w / 2.0), (float) (b.y + (b.h - 8) / 2.0 + 1));
+            g.pose().scale(scale, scale);
+            g.drawCenteredString(font, b.label, 0, 0, color);
+            g.pose().popMatrix();
+        } else {
+            g.drawCenteredString(font, b.label, b.x + b.w / 2, b.y + (b.h - 8) / 2 + 1, color);
+        }
     }
 
     public static void progressBar(GuiGraphics g, int x, int y, int w, int h, double pct) {

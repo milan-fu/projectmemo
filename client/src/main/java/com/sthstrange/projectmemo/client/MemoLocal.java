@@ -93,7 +93,15 @@ public final class MemoLocal {
             if (file == null) return;
             File dir = file.getParentFile();
             if (dir != null && !dir.exists()) dir.mkdirs();
-            Files.write(file.toPath(), GSON.toJson(store).getBytes(StandardCharsets.UTF_8));
+            // 原子写：临时文件 + rename（与服务端 MemoStore 对齐），避免写一半损坏 data.json
+            File tmp = new File(dir, "data.json.tmp");
+            Files.write(tmp.toPath(), GSON.toJson(store).getBytes(StandardCharsets.UTF_8));
+            try {
+                Files.move(tmp.toPath(), file.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (Exception e2) {
+                Files.move(tmp.toPath(), file.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (Exception ignored) { }
     }
 
@@ -146,6 +154,10 @@ public final class MemoLocal {
 
     private static int optInt(JsonObject o, String k) {
         return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsInt() : 0;
+    }
+
+    private static long optLong(JsonObject o, String k) {
+        return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsLong() : 0L;
     }
 
     private static String optStr(JsonObject o, String k) {
@@ -522,11 +534,11 @@ public final class MemoLocal {
                         long give;
                         if (i == list.size() - 1) give = avail; // 末行承接剩余全部（含超量）
                         else {
-                            long need = m.get("need").getAsLong();
+                            long need = optLong(m, "need");
                             give = Math.min(avail, Math.max(need, 0L));
                             avail -= give;
                         }
-                        if (give != m.get("delivered").getAsLong()) { m.addProperty("delivered", give); updated++; }
+                        if (give != optLong(m, "delivered")) { m.addProperty("delivered", give); updated++; }
                     }
                 }
                 // 收集任务自动判定
@@ -542,7 +554,7 @@ public final class MemoLocal {
                         JsonObject m = materialById(midE.getAsInt());
                         if (m == null || optInt(m, "projectId") != pid) continue;
                         any = true;
-                        if (m.get("delivered").getAsLong() < m.get("need").getAsLong()) { allOk = false; break; }
+                        if (optLong(m, "delivered") < optLong(m, "need")) { allOk = false; break; }
                     }
                     if (any && allOk) {
                         t.addProperty("status", "done");
@@ -614,7 +626,7 @@ public final class MemoLocal {
             if (!seen.add(mid)) continue;
             JsonObject m = materialById(mid);
             if (m == null || optInt(m, "projectId") != pid) return fail(L10n.get("projectmemo.err.materialRowNotFound", mid));
-            if (m.get("need").getAsLong() > 0 && m.get("delivered").getAsLong() >= m.get("need").getAsLong())
+            if (optLong(m, "need") > 0 && optLong(m, "delivered") >= optLong(m, "need"))
                 return fail(L10n.get("projectmemo.err.alreadyCollected", itemNameOf(m)));
             JsonObject covering = coveringCollectTask(pid, mid);
             if (covering != null) return fail(L10n.get("projectmemo.err.hasCollectTask", itemNameOf(m), optStr(covering, "assignee")));
@@ -734,7 +746,7 @@ public final class MemoLocal {
         if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
         if (!editable(pr)) return fail(L10n.get("projectmemo.err.projectFrozen"));
         String item = optStr(a, "item");
-        long need = a.has("need") ? a.get("need").getAsLong() : 0;
+        long need = optLong(a, "need");
         if (item.isEmpty()) return fail(L10n.get("projectmemo.err.badItem"));
         if (need <= 0 || need > 10_000_000) return fail(L10n.get("projectmemo.err.amountRange"));
         int pid = optInt(pr, "id");
@@ -742,7 +754,7 @@ public final class MemoLocal {
             if (!e.isJsonObject()) continue;
             JsonObject m = e.getAsJsonObject();
             if (optInt(m, "projectId") == pid && item.equals(optStr(m, "item")) && "custom".equals(optStr(m, "source"))) {
-                m.addProperty("need", m.get("need").getAsLong() + need);
+                m.addProperty("need", optLong(m, "need") + need);
                 refresh();
                 return ok(L10n.get("projectmemo.local.mergedRow"));
             }
@@ -774,7 +786,7 @@ public final class MemoLocal {
     private static JsonObject materialSetNeed(JsonObject a) {
         JsonObject m = materialOf(a);
         if (m == null) return fail(L10n.get("projectmemo.err.materialNotFound"));
-        long need = a.has("need") ? a.get("need").getAsLong() : 0;
+        long need = optLong(a, "need");
         if (need <= 0 || need > 10_000_000) return fail(L10n.get("projectmemo.err.amountRange"));
         m.addProperty("need", need);
         refresh();
@@ -824,7 +836,7 @@ public final class MemoLocal {
             if (!e.isJsonObject()) continue;
             JsonObject it = e.getAsJsonObject();
             String item = optStr(it, "item");
-            long need = it.has("need") ? it.get("need").getAsLong() : 0;
+            long need = optLong(it, "need");
             if (item.isEmpty() || need <= 0) continue;
             totalBlocks += need;
             JsonObject row = null;
@@ -862,12 +874,14 @@ public final class MemoLocal {
         rec.addProperty("at", now());
         rec.addProperty("blocks", totalBlocks);
         rec.addProperty("kinds", a.getAsJsonArray("items").size());
-        boolean hasOrigin = a.has("hasOrigin") && a.get("hasOrigin").getAsBoolean();
+        // 参数与服务端一致：客户端发 origin:{x,y,z} 对象（旧代码误读 hasOrigin/ox，单人档投影原点全丢）
+        boolean hasOrigin = a.has("origin") && a.get("origin").isJsonObject();
         rec.addProperty("hasOrigin", hasOrigin);
         if (hasOrigin) {
-            rec.addProperty("ox", optInt(a, "ox"));
-            rec.addProperty("oy", optInt(a, "oy"));
-            rec.addProperty("oz", optInt(a, "oz"));
+            JsonObject origin = a.getAsJsonObject("origin");
+            rec.addProperty("ox", optInt(origin, "x"));
+            rec.addProperty("oy", optInt(origin, "y"));
+            rec.addProperty("oz", optInt(origin, "z"));
         }
         if (!pr.has("schematics") || !pr.get("schematics").isJsonArray()) pr.add("schematics", new JsonArray());
         pr.getAsJsonArray("schematics").add(rec);

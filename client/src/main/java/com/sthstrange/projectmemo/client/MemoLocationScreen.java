@@ -27,6 +27,7 @@ public final class MemoLocationScreen extends MemoScreenBase {
     }
 
     private boolean dirty() {
+        if (xBox == null) return false; // 工程不存在（控件未建），无未保存修改可言
         return !snapX.equals(xBox.getValue().trim()) || !snapY.equals(yBox.getValue().trim())
                 || !snapZ.equals(zBox.getValue().trim()) || !snapNote.equals(noteBox.getValue().trim());
     }
@@ -73,7 +74,17 @@ public final class MemoLocationScreen extends MemoScreenBase {
     @Override
     protected void layoutAndDraw(GuiGraphics g, int mouseX, int mouseY) {
         MemoData.Project pr = pr();
-        if (pr == null) return;
+        if (pr == null) {
+            // 工程已不存在（开着本页时被删）：给提示+返回按钮，避免黑屏与 ESC/dirty 的 NPE
+            int panelW0 = Math.min(320, this.width - 30);
+            int x00 = (this.width - panelW0) / 2, y00 = (this.height - 170) / 2;
+            UiKit.panel(g, x00, y00, panelW0, 170);
+            g.drawString(this.font, L10n.get("projectmemo.pd.projectGone"), x00 + 12, y00 + 20, UiKit.RED, false);
+            UiKit.UiButton back = new UiKit.UiButton(x00 + panelW0 - 62, y00 + 170 - 24, 52, 16, L10n.get("projectmemo.common.back"),
+                    () -> this.minecraft.setScreen(new MemoMainScreen()));
+            uiButtons.add(back);
+            return;
+        }
         int panelW = Math.min(320, this.width - 30);
         int panelH = 170;
         int x0 = (this.width - panelW) / 2;
