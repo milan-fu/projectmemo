@@ -35,7 +35,7 @@ echo "[build] shading deps (json + adventure-plain)..."
 )
 
 echo "[build] packaging jar..."
-( cd "$CLS" && jar cf "../../$OUT/ProjectMemo-1.0.0.jar" . )
+( cd "$CLS" && jar cf "../../$OUT/ProjectMemo-1.0.1.jar" . )
 
 echo "[build] done:"
-ls -la "$OUT/ProjectMemo-1.0.0.jar"
+ls -la "$OUT/ProjectMemo-1.0.1.jar"
