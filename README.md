@@ -24,7 +24,7 @@
 
 > 也可从 Hangar 直接下载：https://hangar.papermc.io/fudoghh/ProjectMemo
 
-1. `ProjectMemo-1.0.0.jar` 放入 `plugins/`
+1. `ProjectMemo-1.0.1.jar` 放入 `plugins/`
 2. 重启后编辑 `plugins/ProjectMemo/config.yml`（全部配置项见文件内注释）：
    - `role: single` 单服使用；`role: writer` + `redis` 配置 = 对外发布镜像的写端；`role: mirror` = 只读镜像端（如创造服）
    - `wiki-export: true` 开启 Markdown 导出；`qq-events: true` 开启事件日志行

@@ -54,6 +54,30 @@ public final class MemoActions {
         return pr.isManagerUuid(p.getUniqueId().toString()) || isAdmin(p);
     }
 
+    /**
+     * 名字 -> OfflinePlayer 安全解析（offline-mode + FastLogin 环境，v1.0.1 修复）。
+     * 四段链：①在线精确匹配 ②usercache（Paper API，正版/FastLogin 玩家真实 UUID）
+     * ③白名单（usercache 30 天过期后仍留 name->UUID 记录；本服 enforce-whitelist）
+     * ④传统名字推导 v3（纯离线玩家兜底 = 1.0.0 原行为）。
+     * 返回 null = 四条路都无法确认进过服。
+     */
+    private org.bukkit.OfflinePlayer resolveKnownPlayer(String name) {
+        if (name == null || name.isEmpty()) return null;
+        // ① 在线玩家：直接命中真实身份
+        org.bukkit.OfflinePlayer t = Bukkit.getPlayerExact(name);
+        if (t != null) return t;
+        // ② usercache（Paper API）：正版/FastLogin 玩家真实 UUID
+        try { t = Bukkit.getOfflinePlayerIfCached(name); } catch (Throwable ignored) { t = null; }
+        if (t != null && (t.hasPlayedBefore() || t.isOnline())) return t;
+        // ③ 白名单：usercache 过期后仍保留 name->UUID 记录（本服白名单按正版 UUID 维护）
+        for (org.bukkit.OfflinePlayer w : Bukkit.getWhitelistedPlayers()) {
+            if (w.getName() != null && w.getName().equalsIgnoreCase(name) && w.hasPlayedBefore()) return w;
+        }
+        // ④ 传统名字推导（离线模式 = v3 影子 UUID）：纯离线玩家兜底
+        t = Bukkit.getOfflinePlayer(name);
+        return (t.hasPlayedBefore() || t.isOnline()) ? t : null;
+    }
+
     private boolean isCreatorOf(Project pr, Player p) {
         return pr.creatorUuid.equals(p.getUniqueId().toString());
     }
@@ -465,8 +489,8 @@ public final class MemoActions {
             return Result.fail("只有工程创建者或 OP 能改管理者列表");
         if (!editable(pr)) return Result.fail("工程已竣工/归档，不能再修改");
         if (add) {
-            org.bukkit.OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-            if (!target.hasPlayedBefore() && !target.isOnline())
+            org.bukkit.OfflinePlayer target = resolveKnownPlayer(targetName);
+            if (target == null)
                 return Result.fail("玩家 " + targetName + " 从未进过服");
             String uuid = target.getUniqueId().toString();
             String name = target.getName() == null ? targetName : target.getName();
@@ -731,8 +755,8 @@ public final class MemoActions {
     public Result participantsAdd(Player p, Project pr, String name) {
         if (!isManagerOf(pr, p)) return Result.fail("只有管理者/OP 能编辑参与玩家");
         if ("archived".equals(pr.status)) return Result.fail("工程已归档，不能再修改");
-        org.bukkit.OfflinePlayer target = Bukkit.getOfflinePlayer(name);
-        if (!target.hasPlayedBefore() && !target.isOnline())
+        org.bukkit.OfflinePlayer target = resolveKnownPlayer(name);
+        if (target == null)
             return Result.fail("玩家 " + name + " 从未进过服");
         String real = target.getName() == null ? name : target.getName();
         if (pr.participants.contains(real)) return Result.fail(real + " 已在参与玩家中");
