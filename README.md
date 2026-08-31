@@ -24,7 +24,7 @@
 
 > 也可从 Hangar 直接下载：https://hangar.papermc.io/fudoghh/ProjectMemo
 
-1. `ProjectMemo-1.0.1.jar` 放入 `plugins/`
+1. `ProjectMemo-1.0.2.jar` 放入 `plugins/`
 2. 重启后编辑 `plugins/ProjectMemo/config.yml`（全部配置项见文件内注释）：
    - `role: single` 单服使用；`role: writer` + `redis` 配置 = 对外发布镜像的写端；`role: mirror` = 只读镜像端（如创造服）
    - `wiki-export: true` 开启 Markdown 导出；`qq-events: true` 开启事件日志行
@@ -33,7 +33,7 @@
 ### 客户端模组（Fabric 1.21.11）
 
 1. 安装 [Fabric Loader](https://fabricmc.net/) + [Fabric API](https://modrinth.com/mod/fabric-api)（**不需要 malilib**）
-2. `projectmemo-client-1.1.3.jar` 放入 `.minecraft/versions/<版本>/mods/` 或 `.minecraft/mods/`（下载：[GitHub Releases](https://github.com/milan-fu/projectmemo/releases)，历史版本同页）
+2. `projectmemo-client-1.1.4.jar` 放入 `.minecraft/versions/<版本>/mods/` 或 `.minecraft/mods/`（下载：[GitHub Releases](https://github.com/milan-fu/projectmemo/releases)，历史版本同页）
 3. 进入安装了插件的服务器，按 **J** 打开面板
 4. 单人游戏直接进入即可使用（本地模式，全功能）
 
