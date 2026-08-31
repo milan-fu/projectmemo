@@ -55,6 +55,12 @@
 - **服务端**：JDK 21。`server/build.ps1`（javac + shade json/adventure-plain，依赖在 `server/lib/`；可用 `JAVA_HOME` 指定 JDK）
 - **客户端**：Gradle 9.5+（fabric-loom），`cd client && gradle build`（需联网拉取 Minecraft/映射）
 
+## 外部平台
+
+- [MCMod 词条](https://www.mcmod.cn/class/30204.html)
+- [MineBBS：客户端 mod](https://www.minebbs.com/resources/projectmemo-mod.17932/)
+- [MineBBS：服务端插件（Leaves/Paper）](https://www.minebbs.com/resources/projectmemo-leves-x.17933/)
+
 ## 本地化
 
 UI 已全量国际化：**简体中文 / 繁体中文 / 文言文**显示中文界面，其他语言自动使用英文——跟随 Minecraft 客户端语言设置，无需任何配置。服务端插件的消息由客户端内置映射表翻译（`ServerErrors`），服务端无需改动。
@@ -83,5 +89,7 @@ A **project-coordination memo system** for technical Minecraft communities: proj
 - Integrations: Markdown wiki export, `[MEMO-EVENT]` console lines (project created/completed/deleted) for chat bots, LuckPerms permission nodes plus per-project manager lists (data-driven, no permission nodes needed).
 
 **Install**: drop the jar into `plugins/` (server) or `mods/` (client, requires Fabric API; **malilib is NOT required**). Download jars from [GitHub Releases](https://github.com/milan-fu/projectmemo/releases); the server plugin is also on [Hangar](https://hangar.papermc.io/fudoghh/ProjectMemo). See config comments in `plugins/ProjectMemo/config.yml` for `role`/`redis`/`wiki-export`/`qq-events`.
+
+**External pages**: [MCMod](https://www.mcmod.cn/class/30204.html) · [MineBBS client mod](https://www.minebbs.com/resources/projectmemo-mod.17932/) · [MineBBS server plugin (Leaves/Paper)](https://www.minebbs.com/resources/projectmemo-leves-x.17933/).
 
 **License**: [MIT](LICENSE) — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for bundled dependencies.
