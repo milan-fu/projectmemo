@@ -33,9 +33,9 @@ if (Test-Path "$Cls\META-INF") { Remove-Item -Recurse -Force "$Cls\META-INF" }
 Write-Host "[build] packaging..."
 New-Item -ItemType Directory -Force -Path (Join-Path $PSScriptRoot "build") | Out-Null
 Push-Location $Cls
-& "$JdkBin\jar.exe" cf ..\ProjectMemo-1.0.1.jar .
+& "$JdkBin\jar.exe" cf ..\ProjectMemo-1.0.2.jar .
 if ($LASTEXITCODE -ne 0) { throw "jar failed" }
 Pop-Location
 
 Write-Host "[build] done:"
-Get-Item (Join-Path $PSScriptRoot "build\ProjectMemo-1.0.1.jar") | Select-Object FullName,Length
+Get-Item (Join-Path $PSScriptRoot "build\ProjectMemo-1.0.2.jar") | Select-Object FullName,Length
