@@ -56,7 +56,7 @@
 
 ## 构建
 
-- **服务端**：JDK 21。`server/build.ps1`（javac + shade json/adventure-plain，依赖在 `server/lib/`；可用 `JAVA_HOME` 指定 JDK）
+- **服务端**：JDK 21。`server/build.ps1`（javac + shade json/adventure-plain；依赖 jar 在仓库根目录 `lib/`，随仓库分发，来源与 SHA-256 见 [`lib/README.md`](lib/README.md)；可用 `JAVA_HOME` 指定 JDK）
 - **客户端**：Gradle 9.5+（fabric-loom），`cd client && gradle build`（需联网拉取 Minecraft/映射）
 
 ## 外部平台
