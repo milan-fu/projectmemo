@@ -80,7 +80,8 @@ public final class ChatUI {
         return Instant.ofEpochSecond(epoch).atZone(ZoneId.systemDefault()).toLocalDate().format(FMT_SHORT);
     }
 
-    private static Component btn(String label, String cmd, String hover) {
+    /** 可点击按钮（[标签] 金色，runCommand + hover）；进服提示等外部入口复用 */
+    public static Component btn(String label, String cmd, String hover) {
         return Component.text(" [" + label + "]", BTN)
                 .clickEvent(ClickEvent.runCommand(cmd))
                 .hoverEvent(HoverEvent.showText(Component.text(hover, DIM)));
@@ -181,6 +182,10 @@ public final class ChatUI {
         }
         if (footer != Component.empty()) p.sendMessage(footer);
         p.sendMessage(Component.text("📌 立项、认领、修改等操作请安装 ProjectMemo 客户端模组（masa 风格界面）。", NamedTextColor.DARK_GRAY));
+        // 无 mod 玩家入口：点击直达各页（v1.2.0 rev4 聊天 UI 改版）
+        p.sendMessage(btn("服务器地标", "/memo landmarks", "点击查看服务器地标")
+                .append(Component.text("   "))
+                .append(btn("机器使用手册", "/memo manual", "点击查看机器使用手册")));
     }
 
     private int weight(String status) {
@@ -213,6 +218,7 @@ public final class ChatUI {
                 + ("completed".equals(pr.status) ? " · " + fmtDate(pr.completedAt) + " 竣工" : ""), DIM));
         p.sendMessage(Component.text("管理者: " + String.join("、", pr.managers), DIM));
         if (!pr.desc.isEmpty()) p.sendMessage(Component.text("说明: " + pr.desc, DIM));
+        if (pr.inManual) p.sendMessage(Component.text("✓ 已收录于机器使用手册（/memo manual）", NamedTextColor.GREEN)); // v1.2.0
 
         boolean canSeeLoc = !pr.locHidden || (mgr && !plugin.isMirror()); // 镜像服隐藏选址对所有人隐藏
         if (!pr.locWorld.isEmpty() && canSeeLoc) {
@@ -279,6 +285,97 @@ public final class ChatUI {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 10; i++) sb.append(i < filled ? '█' : '░');
         return sb.toString();
+    }
+
+    // ───────────────────────── 地标 / 使用手册（v1.2.0，只读） ─────────────────────────
+
+    private static String dimCn(int dim) {
+        switch (dim) {
+            case 0: return "主世界";
+            case -1: return "下界";
+            case 1: return "末地";
+            default: return "未知(" + dim + ")";
+        }
+    }
+
+    private static int dimOrder(int dim) {
+        switch (dim) {
+            case 0: return 0;
+            case -1: return 1;
+            case 1: return 2;
+            default: return 3;
+        }
+    }
+
+    public void sendLandmarks(Player p, int page) {
+        List<LocationsReader.Landmark> all = new ArrayList<>(plugin.getLocations().read());
+        all.sort((a, b) -> {
+            int da = dimOrder(a.dim), db = dimOrder(b.dim);
+            if (da != db) return Integer.compare(da, db);
+            return a.name.compareToIgnoreCase(b.name);
+        });
+        int perPage = 10;
+        int pages = Math.max(1, (all.size() + perPage - 1) / perPage);
+        page = Math.max(1, Math.min(page, pages));
+
+        pageBreak(p);
+        p.sendMessage(prefix().append(Component.text("服务器地标 · 共 " + all.size() + " 个（路标增删用 !!loc）", NamedTextColor.WHITE)));
+        p.sendMessage(btn("工程总览", "/memo list", "返回工程总览")
+                .append(Component.text("   "))
+                .append(btn("机器使用手册", "/memo manual", "点击查看机器使用手册")));
+        p.sendMessage(line());
+        if (all.isEmpty())
+            p.sendMessage(Component.text("  暂无地标：游戏内 !!loc add 添加；工程选址（非隐藏）会自动收录。", DIM));
+        int lastDim = Integer.MIN_VALUE;
+        for (int i = (page - 1) * perPage; i < Math.min(page * perPage, all.size()); i++) {
+            LocationsReader.Landmark lm = all.get(i);
+            if (lm.dim != lastDim) {
+                lastDim = lm.dim;
+                p.sendMessage(Component.text("▸ " + dimCn(lm.dim), NamedTextColor.AQUA));
+            }
+            Component name = Component.text(trunc(lm.name, 16), NamedTextColor.WHITE);
+            if (lm.projectId() < 0 && !lm.desc.isEmpty())
+                name = name.hoverEvent(HoverEvent.showText(Component.text(lm.desc, DIM)));
+            Component row = Component.text("  ").append(name)
+                    .append(Component.text("  " + lm.ix() + ", " + lm.iy() + ", " + lm.iz(), DIM))
+                    .append(copyBtn("复制", lm.ix() + " " + lm.iy() + " " + lm.iz(), "复制坐标"));
+            Project pr = lm.projectId() > 0 ? d().projectById(lm.projectId()) : null;
+            if (pr != null) row = row.append(btn("详情", "/memo show " + pr.id, "查看工程详情（该地标由工程选址收录）"));
+            else row = row.append(Component.text("  （暂无详情页）", NamedTextColor.DARK_GRAY));
+            p.sendMessage(row);
+        }
+        p.sendMessage(line());
+        if (pages > 1) {
+            Component footer = Component.empty();
+            if (page > 1) footer = footer.append(btn("上一页", "/memo landmarks " + (page - 1), "上一页"));
+            footer = footer.append(Component.text("  " + page + "/" + pages + "  ", DIM));
+            if (page < pages) footer = footer.append(btn("下一页", "/memo landmarks " + (page + 1), "下一页"));
+            p.sendMessage(footer);
+        }
+    }
+
+    public void sendManual(Player p) {
+        List<Project> ms = new ArrayList<>();
+        for (Project pr : d().projects) if (pr.inManual) ms.add(pr);   // v1.2.1：归档工程仍显示（服主定）
+        ms.sort((a, b) -> Long.compare(
+                b.completedAt > 0 ? b.completedAt : b.createdAt,
+                a.completedAt > 0 ? a.completedAt : a.createdAt));
+        pageBreak(p);
+        p.sendMessage(prefix().append(Component.text("机器使用手册 · 共 " + ms.size() + " 篇（正文=工程说明）", NamedTextColor.WHITE)));
+        p.sendMessage(btn("工程总览", "/memo list", "返回工程总览")
+                .append(Component.text("   "))
+                .append(btn("服务器地标", "/memo landmarks", "点击查看服务器地标")));
+        p.sendMessage(line());
+        if (ms.isEmpty())
+            p.sendMessage(Component.text("  暂无收录：在工程信息页点「加入使用说明」（客户端模组）。", DIM));
+        for (Project pr : ms) {
+            p.sendMessage(Component.text(sym(pr.status) + " ", symColor(pr.status))
+                    .append(Component.text(trunc(pr.title, 18), NamedTextColor.WHITE))
+                    .append(Component.text("  " + pr.creator
+                            + (pr.completedAt > 0 ? " · " + fmtDate(pr.completedAt) + " 竣工" : " · " + fmtDate(pr.createdAt) + " 开始"), DIM))
+                    .append(btn("详情", "/memo show " + pr.id, "查看使用说明（工程说明）")));
+        }
+        p.sendMessage(line());
     }
 
     // ───────────────────────── 控制台纯文本 ─────────────────────────

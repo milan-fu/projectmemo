@@ -263,7 +263,19 @@ public final class MemoActions {
         }
         audit(p, "edit_project", "#" + pr.id + " " + field);
         save();
+        if ("title".equals(field)) plugin.getLocSync().onLocationChanged(pr); // 改名 → 路标同步重建（v1.2.0）
         return Result.ok();
+    }
+
+    /** v1.2.0：收录/移出「机器使用说明」。管理者+OP；planning/active/completed 开放（竣工后机器说明仍可维护），archived 全锁。 */
+    public Result manualSet(Player p, Project pr, boolean on) {
+        if (!isManagerOf(pr, p)) return Result.fail("只有本工程管理者/OP 能操作使用说明收录");
+        if ("archived".equals(pr.status)) return Result.fail("工程已归档，不能修改收录");
+        if (pr.inManual == on) return Result.fail(on ? "已在机器使用说明中" : "本就不在机器使用说明中");
+        pr.inManual = on;
+        audit(p, "manual_set", "#" + pr.id + " " + (on ? "+" : "-"));
+        save();
+        return Result.ok().withMessage(on ? "已收录进机器使用说明（/memo manual）" : "已移出机器使用说明");
     }
 
     public Result setLocationHidden(Player p, Project pr, boolean hidden) {
@@ -272,6 +284,9 @@ public final class MemoActions {
         pr.locHidden = hidden;
         audit(p, hidden ? "loc_hide" : "loc_show", "#" + pr.id);
         save();
+        // v1.2.0：隐藏 → 从路标库删除（防坐标泄露）；重新公开 → 同步回去
+        if (hidden) plugin.getLocSync().onRemove(pr);
+        else plugin.getLocSync().onLocationChanged(pr);
         return Result.ok();
     }
 
@@ -284,6 +299,7 @@ public final class MemoActions {
         pr.soWorld = "";
         audit(p, "loc_clear", "#" + pr.id);
         save();
+        plugin.getLocSync().onRemove(pr); // v1.2.0：清除选址 → 移除路标
         return Result.ok();
     }
 
@@ -299,7 +315,9 @@ public final class MemoActions {
         pr.locZ = p.getLocation().getBlockZ();
         audit(p, "set_location", "#" + pr.id + " " + pr.locWorld + " " + pr.locX + "," + pr.locY + "," + pr.locZ);
         save();
-        return Result.ok();
+        plugin.getLocSync().onLocationChanged(pr); // v1.2.0：非隐藏选址自动收录进路标库（!!loc）
+        return Result.ok().withMessage(plugin.getLocSync().active() && !pr.locHidden
+                ? "选址已保存，路标后台同步中（!!loc list 可查）" : null);
     }
 
     /** 手动填写选址坐标 */
@@ -314,7 +332,9 @@ public final class MemoActions {
         if (note != null && note.length() <= 60) pr.locNote = note.trim();
         audit(p, "set_location_manual", "#" + pr.id + " " + pr.locWorld + " " + x + "," + y + "," + z);
         save();
-        return Result.ok();
+        plugin.getLocSync().onLocationChanged(pr); // v1.2.0：非隐藏选址自动收录进路标库（!!loc）
+        return Result.ok().withMessage(plugin.getLocSync().active() && !pr.locHidden
+                ? "选址已保存，路标后台同步中（!!loc list 可查）" : null);
     }
 
     /** 选址锁：防止坐标被误改 */
@@ -869,6 +889,7 @@ public final class MemoActions {
 
     public Result deleteProject(Player p, Project pr) {
         if (!p.hasPermission("memo.delete")) return Result.fail("删除需要 OP 权限");
+        plugin.getLocSync().onRemove(pr); // v1.2.0：删工程 → 移除已同步路标（异步，不阻塞删除）
         d().tasks.removeIf(t -> t.projectId == pr.id);
         d().materials.removeIf(m -> m.projectId == pr.id);
         d().projects.remove(pr);

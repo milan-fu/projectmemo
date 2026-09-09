@@ -28,6 +28,8 @@ public final class MemoClientState {
     private static int quotaLeft;
     private static boolean mirror;     // 连着镜像服（创造服）
     private static boolean readOnly;   // 服务端要求全只读（镜像：认领/收集等也禁）
+    private static String serverVersion = "";          // v1.2.0：perms.sv（旧服务端缺省 ""）
+    private static boolean capsManual, capsLandmarks;  // v1.2.0：能力位（旧服务端全 false → UI 降级隐藏）
     private static final Set<Integer> managed = new HashSet<>();
     private static long dataVersion;       // init/sync/断线时递增，屏幕据此刷新
     /** 材料页投影来源筛选（会话内）：null=全部，set=勾选的来源集合 */
@@ -82,6 +84,14 @@ public final class MemoClientState {
 
     public static boolean readOnly() { return readOnly; }
 
+    public static String serverVersion() { return serverVersion; }
+
+    /** 服务端支持「机器使用说明」收录（1.2.0+） */
+    public static boolean capsManual() { return capsManual; }
+
+    /** 服务端支持地标列表（1.2.0+，读本机 LocationMarker） */
+    public static boolean capsLandmarks() { return capsLandmarks; }
+
     /** 服务端 isManagerOf 语义镜像：本工程管理者或 OP */
     public static boolean manages(int projectId) { return op || managed.contains(projectId); }
 
@@ -95,6 +105,9 @@ public final class MemoClientState {
         quotaLeft = 0;
         mirror = false;
         readOnly = false;
+        serverVersion = "";
+        capsManual = false;
+        capsLandmarks = false;
         managed.clear();
         ackHandlers.clear();
         dataVersion++;
@@ -109,6 +122,15 @@ public final class MemoClientState {
             quotaLeft = MemoData.optInt(perms, "quotaLeft");
             mirror = MemoData.optBool(perms, "mirror");
             readOnly = MemoData.optBool(perms, "readOnly");
+            serverVersion = MemoData.optStr(perms, "sv", "");
+            if (perms.has("caps") && perms.get("caps").isJsonObject()) {
+                JsonObject caps = perms.getAsJsonObject("caps");
+                capsManual = MemoData.optBool(caps, "manual");
+                capsLandmarks = MemoData.optBool(caps, "landmarks");
+            } else {
+                capsManual = false;
+                capsLandmarks = false;
+            }
             managed.clear();
             for (String s : MemoData.optArr(perms, "managed")) {
                 try { managed.add(Integer.parseInt(s)); } catch (NumberFormatException ignored) { }

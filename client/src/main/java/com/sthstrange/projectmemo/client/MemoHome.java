@@ -34,6 +34,17 @@ public final class MemoHome {
         String h = load();
         try {
             String[] parts = h.split(":");
+            // v1.2.1：地标页/使用说明页也可设为首页（能力位缺失时回退主界面）
+            if ("landmarks".equals(parts[0])) {
+                if (MemoClientState.capsLandmarks()) mc.setScreen(new MemoLandmarksScreen());
+                else mc.setScreen(new MemoMainScreen());
+                return;
+            }
+            if ("manual".equals(parts[0])) {
+                if (MemoClientState.capsManual()) mc.setScreen(new MemoManualScreen());
+                else mc.setScreen(new MemoMainScreen());
+                return;
+            }
             if ("project".equals(parts[0]) && parts.length >= 2) {
                 int id = Integer.parseInt(parts[1]);
                 int tab = parts.length >= 3 ? Integer.parseInt(parts[2]) : 0;

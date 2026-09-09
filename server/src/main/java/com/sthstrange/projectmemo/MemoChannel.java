@@ -85,7 +85,7 @@ public final class MemoChannel implements PluginMessageListener, Listener {
         String op = json.optString("op");
         JSONObject args = json.optJSONObject("args");
         if (args == null) args = new JSONObject();
-        if (plugin.isMirror() && !"request_sync".equals(op)) {
+        if (plugin.isMirror() && !"request_sync".equals(op) && !"landmarks_list".equals(op)) { // v1.2.0：mirror 也提供本机路标
             sendAck(player, nonce, MemoActions.Result.fail("只读镜像服：备忘录编辑请回主服"));
             return;
         }
@@ -101,7 +101,7 @@ public final class MemoChannel implements PluginMessageListener, Listener {
             plugin.getLogger().info("[action失败] " + player.getName() + " " + op + " " + args + " -> " + r.error);
         }
         sendAck(player, nonce, r);
-        if (r.ok && !"list_imports".equals(op) && !"request_sync".equals(op)) {
+        if (r.ok && !"list_imports".equals(op) && !"request_sync".equals(op) && !"landmarks_list".equals(op)) {
             broadcastSync();
             plugin.onDataChanged(); // wiki 导出防抖（T4）
         }
@@ -326,6 +326,16 @@ public final class MemoChannel implements PluginMessageListener, Listener {
                 }
                 return MemoActions.Result.ok().withMessage(arr.toString());
             }
+            case "manual_set": { // v1.2.0：收录/移出机器使用说明
+                Project pr = project(d, a);
+                return pr == null ? MemoActions.Result.fail("找不到工程")
+                        : act.manualSet(p, pr, a.optBoolean("on", !pr.inManual));
+            }
+            case "landmarks_list": { // v1.2.0：只读，ack.message = [{name,desc,dim,x,y,z}...]（本机 locations.json）
+                org.json.JSONArray arr = new org.json.JSONArray();
+                for (LocationsReader.Landmark lm : plugin.getLocations().read()) arr.put(lm.toJson());
+                return MemoActions.Result.ok().withMessage(arr.toString());
+            }
             case "project_done": {
                 Project pr = project(d, a);
                 return pr == null ? MemoActions.Result.fail("找不到工程") : act.projectDone(p, pr);
@@ -399,10 +409,14 @@ public final class MemoChannel implements PluginMessageListener, Listener {
             perms.put("managed", new JSONArray());
             perms.put("mirror", true);
             perms.put("readOnly", true);
+            perms.put("sv", "1.2.0"); // v1.2.0：服务端版本 + 能力位（客户端 UI 降级判据）
+            perms.put("caps", new JSONObject().put("manual", true).put("landmarks", true));
             return perms;
         }
         perms.put("op", p.hasPermission("memo.admin") || p.isOp());
         perms.put("canCreate", p.hasPermission("memo.create"));
+        perms.put("sv", "1.2.0"); // v1.2.0：服务端版本 + 能力位（客户端 UI 降级判据）
+        perms.put("caps", new JSONObject().put("manual", true).put("landmarks", true));
         perms.put("quotaLeft", plugin.getActions().quotaLeft(p));
         JSONArray managed = new JSONArray();
         String uuid = p.getUniqueId().toString();

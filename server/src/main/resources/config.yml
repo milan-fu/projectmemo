@@ -19,6 +19,16 @@ wiki-export: false
 # wiki 导出防抖秒数（数据变更后延迟导出，期间多次变更合并为一次）
 wiki-export-debounce-sec: 60
 
+# v1.2.0：工程选址 → LocationMarker(!!loc) 自动同步（经 MCDR remote_console 发送官方命令；条目入库后归 !!loc 管理）
+# mode: socket（生产） | dry-run（只记日志，供无 MCDR 的测试服） | off；mirror 角色永不写
+loc-sync:
+  mode: socket
+  remote-console-host: 127.0.0.1
+  remote-console-port: 25999
+
+# v1.2.0：LocationMarker 路标库路径（相对服务器工作目录，与 LocBridge 同约定；地标查看用，只读）
+locations-file: ../config/location_marker/locations.json
+
 # Redis 创造服只读镜像（M5 启用；single/writer 默认关闭）
 redis:
   enabled: false

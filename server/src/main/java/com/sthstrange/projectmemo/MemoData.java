@@ -61,6 +61,8 @@ public final class MemoData {
         public boolean depLocked;        // 角点锁：防止角点被误改
         public final List<String> tags = new ArrayList<>();
         public String buildNote = "";
+        public boolean inManual;             // v1.2.0：已收录进「机器使用说明」（竣工后仍可切换，归档锁）
+        public String locSyncedName = "";    // v1.2.0：已同步到 LocationMarker 的路标名（空=未同步；防误删记账）
         /** 已导入的投影记录：{name, source(shared|local), file, by, at, blocks, kinds, ox,oy,oz,hasOrigin} */
         public final List<JSONObject> schematics = new ArrayList<>();
 
@@ -108,6 +110,8 @@ public final class MemoData {
             }
             o.put("tags", new JSONArray(tags));
             o.put("buildNote", buildNote);
+            o.put("inManual", inManual);
+            if (!locSyncedName.isEmpty()) o.put("locSyncedName", locSyncedName);
             o.put("schematics", new JSONArray(schematics));
             return o;
         }
@@ -151,6 +155,8 @@ public final class MemoData {
             }
             for (Object x : o.optJSONArray("tags")) p.tags.add(String.valueOf(x));
             p.buildNote = o.optString("buildNote");
+            p.inManual = o.optBoolean("inManual");
+            p.locSyncedName = o.optString("locSyncedName");
             JSONArray sch = o.optJSONArray("schematics");
             if (sch != null) for (Object x : sch) if (x instanceof JSONObject) p.schematics.add((JSONObject) x);
             return p;

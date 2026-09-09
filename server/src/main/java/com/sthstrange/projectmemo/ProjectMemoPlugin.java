@@ -18,6 +18,8 @@ public final class ProjectMemoPlugin extends JavaPlugin {
     private MemoChannel channel;
     private WikiExporter wiki;
     private MemoRedis redis;
+    private LocationsReader locations;   // v1.2.0：LocationMarker 路标库只读
+    private LocSync locSync;             // v1.2.0：选址 → !!loc 同步
     private File importsDir;
     private int dailyLimit = 2;
     private String role = "single";
@@ -53,6 +55,12 @@ public final class ProjectMemoPlugin extends JavaPlugin {
             else if ("writer".equals(role)) redis.startWriter();
         }
 
+
+        locations = new LocationsReader(this);
+        locSync = new LocSync(this);
+        getLogger().info("地标库: " + locations.file().getPath()
+                + " | loc-sync=" + getConfig().getString("loc-sync.mode", "socket")
+                + (isMirror() ? "（mirror 不同步选址）" : ""));
 
         importsDir = new File(dir, "imports");
         if (!importsDir.exists()) {
@@ -113,6 +121,10 @@ public final class ProjectMemoPlugin extends JavaPlugin {
     public MemoChannel getChannel() { return channel; }
 
     public WikiExporter getWiki() { return wiki; }
+
+    public LocationsReader getLocations() { return locations; }
+
+    public LocSync getLocSync() { return locSync; }
 
     /** 数据变更钩子（MemoActions 每次写盘后调用）：驱动 wiki 导出防抖 + writer 发布快照 */
     public void onDataChanged() {

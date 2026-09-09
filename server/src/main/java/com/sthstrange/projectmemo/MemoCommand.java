@@ -58,7 +58,8 @@ public final class MemoCommand implements CommandExecutor, TabCompleter {
         if (!p.hasPermission("memo.use")) { err(p, "无权限"); return true; }
         if (args.length == 0) args = new String[]{"open"};
         String sub = args[0].toLowerCase();
-        if (plugin.isMirror() && !"open".equals(sub) && !"list".equals(sub) && !"show".equals(sub)) {
+        if (plugin.isMirror() && !"open".equals(sub) && !"list".equals(sub) && !"show".equals(sub)
+                && !"landmarks".equals(sub) && !"manual".equals(sub)) { // v1.2.0：mirror 可看本机地标与使用手册
             err(p, "只读镜像服：备忘录编辑请回主服");
             return true;
         }
@@ -313,6 +314,15 @@ public final class MemoCommand implements CommandExecutor, TabCompleter {
                 okMsg(p, "已删除工程");
                 return;
             }
+            case "landmarks": { // v1.2.0 只读：服务器地标（!!loc 路标 + 工程选址自动收录条目）
+                int page = args.length > 1 ? parseInt(args[1], 1) : 1;
+                plugin.getUi().sendLandmarks(p, page);
+                return;
+            }
+            case "manual": { // v1.2.0 只读：机器使用手册（收录工程列表）
+                plugin.getUi().sendManual(p);
+                return;
+            }
             case "daily":
                 p.sendMessage(ChatUI.prefix().append(Component.text(
                         "活动模块（每日整活/聚落建设名单等长期活动）开发中，见里程碑 M6。", NamedTextColor.GRAY)));
@@ -349,8 +359,9 @@ public final class MemoCommand implements CommandExecutor, TabCompleter {
 
     // ───────────────────────── tab 补全 ─────────────────────────
 
-    private static final List<String> ROOT = Arrays.asList("list", "show", "create", "sub", "claim", "unclaim",
-            "done", "set", "managers", "participants", "import", "finish", "reopen", "archive", "delete", "daily", "admin");
+    private static final List<String> ROOT = Arrays.asList("list", "show", "landmarks", "manual", "create", "sub",
+            "claim", "unclaim", "done", "set", "managers", "participants", "import", "finish", "reopen",
+            "archive", "delete", "daily", "admin");
 
     @Override
     public List<String> onTabComplete(CommandSender s, Command command, String alias, String[] args) {

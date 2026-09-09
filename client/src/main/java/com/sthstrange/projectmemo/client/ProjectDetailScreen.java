@@ -22,7 +22,11 @@ public final class ProjectDetailScreen extends MemoScreenBase {
     private static final int MAT_ROW_H = 24;
     private static final int BTN_W = 30, BTN_GAP = 3;
 
+    /** 来源页（决定「返回列表」去哪）：0=工程列表 1=地标页 2=使用说明页 */
+    public static final int FROM_MAIN = 0, FROM_LANDMARKS = 1, FROM_MANUAL = 2;
+
     private final int projectId;
+    private final int origin;
     private int tab;
     private double scroll;
     private int taskListTop, taskListBottom, taskListLeft, taskListRight;
@@ -44,13 +48,27 @@ public final class ProjectDetailScreen extends MemoScreenBase {
     private int taskFilterDdX, taskFilterDdY;
 
     public ProjectDetailScreen(int projectId) {
-        this(projectId, 0);
+        this(projectId, 0, FROM_MAIN);
     }
 
     public ProjectDetailScreen(int projectId, int initialTab) {
+        this(projectId, initialTab, FROM_MAIN);
+    }
+
+    public ProjectDetailScreen(int projectId, int initialTab, int origin) {
         super(L10n.get("projectmemo.pd.screenTitle"));
         this.projectId = projectId;
+        this.origin = origin;
         this.tab = Math.max(0, Math.min(initialTab, tabs().length - 1));
+    }
+
+    /** 「返回列表」按来源返回（服主定：从地标页进→回地标页；从使用说明进→回使用说明；否则回工程列表） */
+    private void goBack() {
+        switch (origin) {
+            case FROM_LANDMARKS: this.minecraft.setScreen(new MemoLandmarksScreen()); return;
+            case FROM_MANUAL: this.minecraft.setScreen(new MemoManualScreen()); return;
+            default: this.minecraft.setScreen(new MemoMainScreen());
+        }
     }
 
     private int panelW() { return Math.min(480, this.width - 16); }
@@ -88,7 +106,7 @@ public final class ProjectDetailScreen extends MemoScreenBase {
                 g.drawString(this.font, L10n.get("projectmemo.pd.projectGone"), x0 + 12, y0 + 20, UiKit.RED, false);
             }
             UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 66, y0 + panelH - 24, 58, 16, L10n.get("projectmemo.common.backToList"),
-                    () -> this.minecraft.setScreen(new MemoMainScreen()));
+                    this::goBack);
             uiButtons.add(back);
             return;
         }
@@ -152,9 +170,16 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             UiKit.UiButton finish = new UiKit.UiButton(bx, by, 52, 16, L10n.get("projectmemo.pd.finish"), () -> {
                 List<MemoData.Task> ts = data.tasksOf(pr.id);
                 long undone = ts.stream().filter(t -> !"done".equals(t.status)).count();
+                // v1.2.0：未收录使用说明时，竣工确认里带一句提示（纯文案，服主拍板）
+                String manualHint = (!pr.inManual && MemoClientState.capsManual())
+                        ? "\n" + L10n.get("projectmemo.pd.finishManualHint") : "";
                 if (undone > 0) {
                     this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.finishTitle"),
-                            L10n.get("projectmemo.pd.finishMsg", undone),
+                            L10n.get("projectmemo.pd.finishMsg", undone) + manualHint,
+                            false, this::doFinish));
+                } else if (!manualHint.isEmpty()) {
+                    this.minecraft.setScreen(new MemoConfirmDialog(this, L10n.get("projectmemo.pd.finishTitle"),
+                            L10n.get("projectmemo.pd.finishBaseMsg") + manualHint,
                             false, this::doFinish));
                 } else {
                     doFinish();
@@ -197,7 +222,7 @@ public final class ProjectDetailScreen extends MemoScreenBase {
             uiButtons.add(del);
         }
         UiKit.UiButton back = new UiKit.UiButton(x0 + panelW - 8 - 58, by, 58, 16, L10n.get("projectmemo.common.backToList"),
-                () -> this.minecraft.setScreen(new MemoMainScreen()));
+                this::goBack);
         uiButtons.add(back);
     }
 
@@ -319,6 +344,21 @@ public final class ProjectDetailScreen extends MemoScreenBase {
                                 name -> MemoClientState.sendAction("participants_add",
                                         MemoClientState.argsOf("project", pr.id, "name", name)))));
                 uiButtons.add(addP);
+            }
+            y += 15;
+        }
+
+        // ── 使用说明收录（v1.2.0）：描述即正文，这里只做标记+入口；竣工后仍可切换，归档隐藏 ──
+        if (MemoClientState.capsManual() && !"archived".equals(pr.status) && y <= cy1 - 34) {
+            if (pr.inManual) g.drawString(this.font, L10n.get("projectmemo.pd.inManualMark"), cx, y, UiKit.GREEN, false);
+            else g.drawString(this.font, L10n.get("projectmemo.pd.notInManualMark"), cx, y, UiKit.FAINT, false);
+            if (mgr) {
+                UiKit.UiButton manBtn = new UiKit.UiButton(cx + cw - 96, y - 2, 94, 14,
+                        pr.inManual ? L10n.get("projectmemo.pd.removeFromManual") : L10n.get("projectmemo.pd.addToManual"),
+                        () -> MemoClientState.sendAction("manual_set",
+                                MemoClientState.argsOf("project", pr.id, "on", !pr.inManual)));
+                manBtn.tooltip(L10n.get("projectmemo.pd.manualTip"));
+                uiButtons.add(manBtn);
             }
             y += 15;
         }

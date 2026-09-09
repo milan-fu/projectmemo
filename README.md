@@ -16,6 +16,9 @@
 - 选址：坐标记录 / 隐藏（对非管理者隐藏，镜像服对所有人隐藏）/ 锁定防误改
 - 权限：LuckPerms 节点（`memo.create` 等）+ 工程级管理者名单（数据驱动，无需权限节点）
 - 导出与集成：`wiki-export/` Markdown 自动导出（供 wiki 同步链）、`[MEMO-EVENT]` 控制台事件行（供 QQ/Discord bot 播报立项/竣工/删除）、Redis writer/mirror 跨服只读镜像
+- **服务器地标**：客户端「地标」页 / 聊天 `/memo landmarks` 只读浏览路标库（LocationMarker `!!loc`）；工程选址确认后自动收录为路标，隐藏选址 / 清空选址 / 删除工程时自动移除，条目此后由 `!!loc` 管理
+- **机器使用说明**：工程信息页一键「加入使用说明」，已收录工程集中列在「使用说明」页 / `/memo manual`，点条目直达工程详情（正文 = 工程描述）；竣工后仍可收录/移出，归档后仍显示
+- **无模组玩家**：进服提示与总览页提供 [工程总览] [服务器地标] [机器使用手册] 可点击入口，无需记命令
 - 聊天框只读 UI（hover/点击/翻页）、审计日志（滚动 500 条）
 
 ## 安装
@@ -24,16 +27,17 @@
 
 > 也可从 Hangar 直接下载：https://hangar.papermc.io/fudoghh/ProjectMemo
 
-1. `ProjectMemo-1.0.2.jar` 放入 `plugins/`
+1. `ProjectMemo-1.2.0.jar` 放入 `plugins/`
 2. 重启后编辑 `plugins/ProjectMemo/config.yml`（全部配置项见文件内注释）：
    - `role: single` 单服使用；`role: writer` + `redis` 配置 = 对外发布镜像的写端；`role: mirror` = 只读镜像端（如创造服）
    - `wiki-export: true` 开启 Markdown 导出；`qq-events: true` 开启事件日志行
+   - `loc-sync.mode: socket` 开启「选址 → LocationMarker 路标库」自动同步（经 MCDR `remote_console`，默认 `127.0.0.1:25999`；无 MCDR 的环境可用 `dry-run` 只记日志或 `off` 关闭）；`locations-file` 指路标库路径（与 LocBridge 同约定）
 3. LuckPerms 给需要的组授权（见下方权限表）
 
 ### 客户端模组（Fabric 1.21.11）
 
 1. 安装 [Fabric Loader](https://fabricmc.net/) + [Fabric API](https://modrinth.com/mod/fabric-api)（**不需要 malilib**）
-2. `projectmemo-client-1.1.4.jar` 放入 `.minecraft/versions/<版本>/mods/` 或 `.minecraft/mods/`（下载：[GitHub Releases](https://github.com/milan-fu/projectmemo/releases)，历史版本同页）
+2. `projectmemo-client-1.2.0.jar` 放入 `.minecraft/versions/<版本>/mods/` 或 `.minecraft/mods/`（下载：[GitHub Releases](https://github.com/milan-fu/projectmemo/releases)，历史版本同页）
 3. 进入安装了插件的服务器，按 **J** 打开面板
 4. 单人游戏直接进入即可使用（本地模式，全功能）
 
@@ -68,7 +72,9 @@ UI 已全量国际化：**简体中文 / 繁体中文 / 文言文**显示中文�
 ## 已知限制
 
 - **英文界面下部分按钮文案较长，可能出现溢出/重叠**（按钮宽度为硬编码像素，按中文排版设计）。不影响任何功能与数据，仅观感问题；中文界面排版完整。
-- 未安装模组的玩家看到的聊天只读 UI、服务端 wiki 导出为中文（服务端能力，插件已冻结）。
+- 未安装模组的玩家看到的聊天只读 UI、服务端 wiki 导出为中文（服务端能力）。
+- 地标同步依赖 MCDR 的 `remote_console` 与 LocationMarker 插件；未安装 LocationMarker 时地标页为空、选址同步自动跳过（`loc-sync` 可关）。
+- wiki 导出的多行描述/搭建说明使用 Markdown 硬换行（行尾两空格），与游戏内换行一致。
 
 ## 许可
 
@@ -85,7 +91,9 @@ A **project-coordination memo system** for technical Minecraft communities: proj
 - Optional **Redis mirror mode**: other servers (e.g. a creative server) can run read-only mirrors with live sync.
 - **Fully localized UI**: Simplified/Traditional Chinese and Classical Chinese show the Chinese interface; all other languages automatically use English (follows the Minecraft client language, zero config). Server plugin messages are translated client-side via a built-in mapping table — no server-side changes needed.
 
-**Known limitation**: in the English UI some buttons may overflow or overlap (button widths are hard-coded pixels designed for Chinese text). Purely cosmetic — no functional impact; the Chinese UI is pixel-perfect.
+**Highlights in 1.2.0**: server landmarks view (client tab / `/memo landmarks`) reading the LocationMarker `!!loc` waypoint library, with project sites auto-registered as waypoints (and auto-removed when the site is hidden/cleared or the project is deleted); machine usage manual (one-click "add to manual" on a project's info page, listed on the Manual tab / `/memo manual`, entry jumps to the project whose description is the manual body); mod-less players get clickable [Overview] [Server Landmarks] [Usage Manual] entries in chat.
+
+**Known limitations**: in the English UI some buttons may overflow or overlap (button widths are hard-coded pixels designed for Chinese text). Purely cosmetic — no functional impact; the Chinese UI is pixel-perfect. Landmark sync requires MCDR's `remote_console` plus LocationMarker (without LocationMarker the landmark page is simply empty); wiki exports use Markdown hard breaks for multi-line descriptions.
 - Integrations: Markdown wiki export, `[MEMO-EVENT]` console lines (project created/completed/deleted) for chat bots, LuckPerms permission nodes plus per-project manager lists (data-driven, no permission nodes needed).
 
 **Install**: drop the jar into `plugins/` (server) or `mods/` (client, requires Fabric API; **malilib is NOT required**). Download jars from [GitHub Releases](https://github.com/milan-fu/projectmemo/releases); the server plugin is also on [Hangar](https://hangar.papermc.io/fudoghh/ProjectMemo). See config comments in `plugins/ProjectMemo/config.yml` for `role`/`redis`/`wiki-export`/`qq-events`.

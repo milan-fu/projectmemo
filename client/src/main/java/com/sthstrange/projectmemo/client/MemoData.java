@@ -42,6 +42,7 @@ public final class MemoData {
         public int soX, soY, soZ;
         public final List<String> tags = new ArrayList<>();
         public String buildNote = "";
+        public boolean inManual;   // v1.2.0：已收录进「机器使用说明」
         public final List<SchemEntry> schematics = new ArrayList<>();
     }
 
@@ -137,6 +138,7 @@ public final class MemoData {
         }
         for (String s : optArr(o, "tags")) p.tags.add(s);
         p.buildNote = optStr(o, "buildNote");
+        p.inManual = optBool(o, "inManual");
         if (o.has("schematics") && o.get("schematics").isJsonArray()) {
             for (JsonElement e : o.getAsJsonArray("schematics")) {
                 if (!e.isJsonObject()) continue;

@@ -59,6 +59,11 @@ public final class MemoLocal {
         perms.addProperty("canCreate", true);
         perms.addProperty("quotaLeft", 999);
         perms.add("managed", new JsonArray());
+        perms.addProperty("sv", "local");                       // v1.2.0
+        JsonObject caps = new JsonObject();                     // 单人档：使用说明可用；地标无 LocationMarker 数据源，隐藏
+        caps.addProperty("manual", true);
+        caps.addProperty("landmarks", false);
+        perms.add("caps", caps);
         JsonObject snap = new JsonObject();
         snap.add("perms", perms);
         snap.add("data", store);
@@ -264,6 +269,8 @@ public final class MemoLocal {
                 case "material_set_need": return materialSetNeed(a);
                 case "schematic_delete": return schematicDelete(a);
                 case "import_materials": return importMaterials(a);
+                case "manual_set": return manualSet(a);                 // v1.2.0
+                case "landmarks_list": return ok("[]");                 // v1.2.0：单人档无路标库
                 default: return fail(L10n.get("projectmemo.local.unsupportedOp", op));
             }
         } catch (Exception e) {
@@ -297,6 +304,18 @@ public final class MemoLocal {
         projects().add(pr);
         refresh();
         return ok();
+    }
+
+    /** v1.2.0：收录/移出机器使用说明（单人档=全权限，仅归档锁） */
+    private static JsonObject manualSet(JsonObject a) {
+        JsonObject pr = projectOf(a);
+        if (pr == null) return fail(L10n.get("projectmemo.err.projectNotFound"));
+        if ("archived".equals(optStr(pr, "status"))) return fail(L10n.get("projectmemo.err.manualArchived"));
+        boolean on = a.has("on") ? a.get("on").getAsBoolean() : !optBool(pr, "inManual");
+        if (optBool(pr, "inManual") == on) return ok();
+        pr.addProperty("inManual", on);
+        refresh();
+        return ok(on ? L10n.get("projectmemo.local.manualAdded") : L10n.get("projectmemo.local.manualRemoved"));
     }
 
     private static JsonObject editProject(JsonObject a) {

@@ -103,6 +103,14 @@ public final class WikiExporter {
         return s == null ? "" : s.replace("|", "\\|").replace("\n", " ");
     }
 
+    /** v1.2.0 换行治本：多行文本 → markdown 硬换行（行尾两空格），与游戏内所见一致 */
+    private static String hardBreaks(String s) {
+        if (s == null) return "";
+        String t = s.trim();
+        if (t.isEmpty()) return "";
+        return t.replace("\r\n", "\n").replace("\n", "  \n");
+    }
+
     // ───────────────────────── index.md ─────────────────────────
 
     private String renderIndex(MemoData d) {
@@ -173,7 +181,7 @@ public final class WikiExporter {
         sb.append("- 管理者：").append(pr.managers.isEmpty() ? "—" : mdEscape(String.join("、", pr.managers)));
         sb.append("\n");
 
-        if (!pr.desc.isEmpty()) sb.append("\n## 说明\n\n").append(pr.desc.trim()).append("\n");
+        if (!pr.desc.isEmpty()) sb.append("\n## 说明\n\n").append(hardBreaks(pr.desc)).append("\n");
 
         sb.append("\n## 选址\n\n");
         if (pr.locWorld.isEmpty()) {
@@ -210,7 +218,7 @@ public final class WikiExporter {
             }
         }
 
-        if (!pr.buildNote.isEmpty()) sb.append("\n## 搭建说明\n\n").append(pr.buildNote.trim()).append("\n");
+        if (!pr.buildNote.isEmpty()) sb.append("\n## 搭建说明\n\n").append(hardBreaks(pr.buildNote)).append("\n");
 
         sb.append("\n---\n");
         if (!pr.participants.isEmpty()) sb.append("参与玩家：").append(String.join("、", pr.participants)).append(" ｜ ");

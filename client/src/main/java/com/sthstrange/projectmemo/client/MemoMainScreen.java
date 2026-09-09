@@ -64,11 +64,10 @@ public final class MemoMainScreen extends MemoScreenBase {
 
         MemoData data = MemoClientState.data();
 
-        // ── 标题行 ──
-        String titleMain = "⚒ " + L10n.get("projectmemo.main.title");
-        g.drawString(this.font, titleMain, x0 + 8, y0 + 8, UiKit.TEXT, false);
+        // ── 标题行（v1.2.0：顶级导航 工程/地标/使用说明）──
+        int navEnd = MemoNav.draw(g, this.font, uiButtons, x0, y0, 0);
         if (MemoClientState.mirror()) {
-            g.drawString(this.font, L10n.get("projectmemo.main.mirrorBadge"), x0 + 8 + this.font.width(titleMain) + 4, y0 + 8, UiKit.GOLD, false);
+            g.drawString(this.font, L10n.get("projectmemo.main.mirrorBadge"), navEnd + 6, y0 + 8, UiKit.GOLD, false);
         }
         if (MemoClientState.isReady()) {
             long active = data.projects.stream().filter(p -> "active".equals(p.status)).count();
