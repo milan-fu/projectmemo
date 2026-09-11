@@ -9,3 +9,7 @@ client/.gradle/
 .idea/
 .vscode/
 .DS_Store
+
+*.jar
+lib/*.jar
+!lib/README.md
