@@ -9,3 +9,7 @@ client/.gradle/
 .idea/
 .vscode/
 .DS_Store
+
+# Third-party build dependencies: download locally, never publish
+*.jar
+lib/
