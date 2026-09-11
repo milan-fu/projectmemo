@@ -12,4 +12,6 @@ client/.gradle/
 
 # Third-party build dependencies: download locally, never publish
 *.jar
-lib/
+
+lib/*.jar
+!lib/README.md

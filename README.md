@@ -106,3 +106,15 @@ A **project-coordination memo system** for technical Minecraft communities: proj
 **External pages**: [MCMod](https://www.mcmod.cn/class/30204.html) · [MineBBS client mod](https://www.minebbs.com/resources/projectmemo-mod.17932/) · [MineBBS server plugin (Leaves/Paper)](https://www.minebbs.com/resources/projectmemo-leves-x.17933/).
 
 **License**: [MIT](LICENSE) — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for bundled dependencies.
+
+## 构建依赖
+
+本仓库不包含第三方 jar（出于许可证与体积考虑）。构建前请把下列依赖放入 `lib/`：
+
+| 依赖 | 说明 |
+|---|---|
+| `leaves-api.jar` / `AuthMe.jar` | 服务端 API 与登录插件 |
+| `PlaceholderAPI-2.12.3.jar` | 占位符 |
+| `gson` / `json` / `adventure-*` / `bungeecord-chat` / `examination-api` | 传递依赖 |
+
+客户端构建还需自行执行 `gradle wrapper` 生成 `gradle-wrapper.jar`。
