@@ -1,5 +1,5 @@
 name: ProjectMemo
-version: 1.2.0
+version: 1.2.0-arcmenu
 main: com.sthstrange.projectmemo.ProjectMemoPlugin
 api-version: '1.21'
 author: sth-strange
@@ -7,11 +7,18 @@ description: 工程备忘录 - 双显示路径（聊天点击 UI / 客户端模�
 softdepend:
   - AuthMe
   - LuckPerms
+  - PlaceholderAPI
+  - ArcMenu
 commands:
   memo:
     description: 工程备忘录
     usage: /memo
     permission: memo.use
+  m:
+    description: 打开服务器备忘录菜单（新版 UI）
+    usage: /m
+    permission: memo.use
+    aliases: [memomenu]
 permissions:
   memo.use:
     description: 查看备忘录

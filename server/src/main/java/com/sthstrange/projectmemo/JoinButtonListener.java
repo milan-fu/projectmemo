@@ -17,13 +17,17 @@ public final class JoinButtonListener implements Listener {
     public void onLogin(LoginEvent event) {
         Player player = event.getPlayer();
         if (!player.hasPermission("memo.use")) return;
-        Component hint = Component.text("[备忘录] ", NamedTextColor.AQUA)
-                .append(Component.text("打开工程备忘录 →  ", NamedTextColor.GRAY))
-                .append(ChatUI.btn("工程总览", "/memo open", "打开工程备忘录（装了模组则弹出界面）"))
+        Component line1 = Component.text("[备忘录] ", NamedTextColor.AQUA)
+                .append(Component.text("打开工程备忘录 →   ", NamedTextColor.GRAY))
+                .append(ChatUI.btn("新版 ui", "/m", "打开新版菜单界面（游戏内悬浮 UI）"));
+        Component line2 = Component.text("[备忘录] ", NamedTextColor.AQUA)
+                .append(Component.text("使用聊天框 ui →   ", NamedTextColor.GRAY))
+                .append(ChatUI.btn("工程总览", "/memo open", "打开工程备忘录（聊天框版本）"))
                 .append(Component.text("   "))
                 .append(ChatUI.btn("服务器地标", "/memo landmarks", "点击查看服务器地标"))
                 .append(Component.text("   "))
                 .append(ChatUI.btn("机器使用手册", "/memo manual", "点击查看机器使用手册"));
-        player.sendMessage(hint);
+        player.sendMessage(line1);
+        player.sendMessage(line2);
     }
 }

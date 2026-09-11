@@ -1,5 +1,5 @@
 # ProjectMemo 配置
-# role: single（单服，测试/生产前置） | writer（生产主服，M4+ 开 Redis 镜像） | mirror（创造服只读，M5）
+# role: single（单服，测试/生产前置） = writer（生产主服，M4+ 开 Redis 镜像） = mirror（创造服只读，M5）
 role: single
 
 # 每人每日可创建的大条目（工程）上限，按服务器时区自然日重置
@@ -20,7 +20,7 @@ wiki-export: false
 wiki-export-debounce-sec: 60
 
 # v1.2.0：工程选址 → LocationMarker(!!loc) 自动同步（经 MCDR remote_console 发送官方命令；条目入库后归 !!loc 管理）
-# mode: socket（生产） | dry-run（只记日志，供无 MCDR 的测试服） | off；mirror 角色永不写
+# mode: socket（生产） = dry-run（只记日志，供无 MCDR 的测试服） = off；mirror 角色永不写
 loc-sync:
   mode: socket
   remote-console-host: 127.0.0.1
@@ -38,3 +38,162 @@ redis:
   channel: memo
   # 快照键（writer SET / mirror GET）；测试请用隔离键如 memo-test:snapshot
   snapshot-key: memo:snapshot
+# ── v1.2.0-arcmenu：ArcMenu 只读展示接入层 ──
+# 给没装 memo 客户端模组的玩家提供游戏内只读浏览（工程/地标/使用说明/导览/信息/排行榜/指令）
+# 依赖 ArcMenu + PlaceholderAPI（缺任一自动停用，memo 其他功能不受影响）
+arcmenu:
+  enabled: true
+  rows-per-page: 8
+  list-capacity-pages: 6      # 工程列表每分类 6 页 × 8 行 = 48 槽
+  loc-pages-per-dim: 3        # 地标每维度 3 页 × 8 行 = 24 槽
+  entry-command: memoui
+  # 数据变更后重建菜单文件的防抖秒数
+  export-debounce-sec: 5
+  # 详情页重建后的重载窗口：no-players（等无人在线）= immediate = off
+  reload-guard: no-players
+  reload-check-sec: 30
+  reload-max-wait-min: 30
+  # 排行榜数据源：复用 MCDR !!stats 查询（主服 25999 / 测试服 25998）
+  stats:
+    host: 127.0.0.1
+    remote-console-port: 25999
+  stats-refresh-min: 1
+
+  # ── 页面文案（可直接修改；改后 /memo arcmenu export + 重载生效）──
+  info-lines:
+    - "&8服务器：&0奇怪服（Leaves 1.21.11 原版生存）"
+    - "&8线路：&0腾讯云主线 / 阿里云备线"
+    - "&8QQ 群 / wiki / 地图：&0见 wiki 首页"
+    - "&8（文案待服主审定）"
+  # ── 常用指令（多页；每页一条 title + lines）──
+  # ── 常用指令：分类结构（入口页列出分类，点进各分类详情页）──
+  cmds-categories:
+    - id: "mcdr"
+      title: "MCDR 指令"
+      lines:
+        - "&2<路标 !!loc>=&8同步到地图网页"
+        - "&0!!loc=&8- 查看帮助"
+        - "&0!!loc list=&8- 所有共享路标"
+        - "&0!!loc add <名称> here [备注]=&8- 当前位置加路标"
+        - "&0!!loc add <名称> <x> <y> <z> <维度>=&8- 指定坐标"
+        - "&0!!loc search <关键词>=&8- 搜索路标"
+        - "&0!!loc info <名称>=&8- 路标详情"
+        - "&0!!loc del <名称>=&8- 删除路标"
+        - "&8维度用英文：overworld / the_nether / the_end"
+        - "&2<数据 !!stats>=&8与 ESC 统计同源"
+        - "&0!!stats=&8- 帮助（可点击）"
+        - "&0!!stats me=&8- 自己六项 + 全服排名"
+        - "&0!!stats online=&8- 在线时长排行榜"
+        - "&0!!stats mine=&8- 挖掘数排行榜"
+        - "&0!!stats place=&8- 放置数排行榜"
+        - "&0!!stats kill=&8- 击杀数排行榜"
+        - "&0!!stats achievement=&8- 成就数排行榜"
+        - "&0!!stats death=&8- 死亡数排行榜"
+      clickable:
+        - line: 10
+          chat: "!!stats"
+        - line: 11
+          chat: "!!stats me"
+    - id: "bot"
+      title: "假人 /bot"
+      lines:
+        - "&c需向管理员或 helper 申请权限"
+        - "&2<创建 / 移除 / 列表>"
+        - "&0/bot create <名字> [皮肤名]=&8- 创建假人"
+        - "&0/bot remove <名字>=&8- 移除假人"
+        - "&0/bot list [世界名]=&8- 假人列表"
+        - "&0/bot action <名字> stop all=&8- 停止全部动作"
+        - "&0/bot action <名字> start <动作> [动作参数]"
+        - "&8动作参数写在各动作后的方括号内，可省略（单位 tick）："
+        - "&8依次：延迟 / 间隔 / 次数 / 使用时间（后者仅 use 类；-1 为不限）"
+        - "&2<交互 / 使用类动作>"
+        - "&0use [延迟 间隔 次数 时间]=&8使用主手物品（吃 / 弓 / 盾）"
+        - "&0use_on [延迟 间隔 次数 时间]=&8对前方方块使用主手（放方块）"
+        - "&0use_to [延迟 间隔 次数 时间]=&8对前方实体使用主手"
+        - "&0use_offhand 系列 [同 use]=&8副手版三种"
+        - "&0attack [延迟 间隔 次数]=&8攻击视线前方实体"
+        - "&0break [延迟 间隔 次数]=&8挖掘视线前方方块"
+        - "&0fish [延迟 间隔 次数]=&8自动钓鱼"
+        - "&2<移动 / 视角 / 其他动作>"
+        - "&0look <玩家名>=&8看向指定玩家"
+        - "&0look <x> <y> <z>=&8看向指定坐标"
+        - "&0rotation <Yaw> <Pitch>=&8设置偏航角与俯仰角"
+        - "&0jump [延迟 间隔 次数]=&8跳跃"
+        - "&0sneak=&8切换潜行状态（无参数）"
+        - "&0swim=&8水中自动浮起（无参数）"
+        - "&0drop=&8扔出背包全部物品（无参数）"
+        - "&8全服上限 10 个；开一群前先在群里报备"
+    - id: "watch"
+      title: "巡查 /watch"
+      lines:
+        - "&c需向管理员或 helper 申请权限"
+        - "&0/watch=&8- 进入 / 退出巡查模式"
+        - "&0/watch tp <玩家>=&8- 巡查并传送到玩家"
+        - "&0/watch back=&8- 回到进入前的位置"
+        - "&0/watch list=&8- 查看正在巡查的玩家"
+        - "&8旁观者模式：可穿墙观察"
+        - "&8容器只能查看，不能拿取或放入物品"
+        - "&8请勿窥探与可疑行为无关的玩家私事"
+    - id: "creative"
+      title: "创造服相关"
+      lines:
+        - "&c需向管理员或 helper 申请权限"
+        - "&0/server=&8- 主服与创造服互切"
+        - "&2<FAWE 创世神>"
+        - "&0//wand=&8- 选区木斧（左键/右键定两点）"
+        - "&0//set / //copy / //paste=&8- 填充与复制粘贴"
+        - "&0//undo / //redo=&8- 撤销与重做"
+        - "&0//expand / //contract=&8- 扩 / 缩选区"
+        - "&8单次 ≤100 万方块、半径 ≤500 · 详情参考服务器 wiki"
+  guide-pages:
+    - title: "新人导览 · 服务器规则"
+      lines:
+        - "&21. &0禁止开挂"
+        - "&22. &0禁止卡服崩服"
+        - "&23. &0禁止偷盗私人物品"
+        - "&24. &0禁止破坏玩家成果"
+        - "&25. &0禁止恶意杀人"
+        - "&26. &0禁止刷屏、广告、引战"
+        - "&c以上行为一经发现直接封号，并回滚对应玩家的所有数据"
+        - "&8注：服务器有反作弊、方块查询回滚、玩家游玩录像插件，取证十分容易"
+    - title: "新人导览 · 服务器设置"
+      layout: "labeled"
+      lines:
+        - "&0服务器类型=&7养老生存（原版生电）||&0服务器种子=&7见 wiki"
+        - "&0游戏难度=&7困难||&0睡觉跳过夜晚=&751% 不含假人"
+        - "&0死亡不掉落=&7关闭||&0定位栏=&7显示玩家与假人"
+        - "&0PvP=&7开启||&0爆炸保护=&7关闭"
+        - "&0PvP 死亡不掉落=&7开启||&0tpa 传送=&7无"
+        - "&0经济系统=&7无||&0领地系统=&7无"
+    - title: "新人导览 · 服务器特色"
+      lines:
+        - "&2<自定义掉落>"
+        - "&0幻翼概率掉鞘翅"
+        - "&0坚守者概率掉迅捷潜行"
+        - "&0闪电苦力怕炸死末影龙掉龙头"
+        - "&2<MCDR 插件>"
+        - "&0输入 &2!!loc list &0显示服务器地标 &8[点这行]"
+        - "&0输入 &2!!stats &0查玩家数据排行 &8[点这行]"
+        - "&8以上内容也可以在本菜单中查询"
+      clickable:
+        - line: 5
+          chat: "!!loc list"
+        - line: 6
+          chat: "!!stats"
+    - title: "新人导览 · 前期发育"
+      lines:
+        - "&0服务器有两个适合前期发育的基地"
+        - "&7主世界可乘矿车前往 &0Micoten 的基地"
+        - "&7地狱门可前往 &0奇怪村"
+        - "&0末地建有小黑塔，可以刷取经验"
+        - "&0相关机器产物均可按需拿取"
+        - "&8后续可自行游玩，或加入在建工程当面包人（x"
+    - title: "新人导览 · 权限功能"
+      layout: "tag"
+      lines:
+        - "&8有一定在线时长后，可申请以下权限功能："
+        - "&2bot||&0使用 Leaves 原生假人指令"
+        - "&2watch||&0巡查模式，可 watch tp"
+        - "&2creator||&0进入创造服，可创建新工程"
+        - "&2Map||&0登录服务器地图网站"
+        - "&8希望大家在奇怪服玩得愉快 ^_^"

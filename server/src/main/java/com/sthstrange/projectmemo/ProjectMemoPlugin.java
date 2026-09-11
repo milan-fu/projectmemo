@@ -1,5 +1,6 @@
 package com.sthstrange.projectmemo;
 
+import com.sthstrange.projectmemo.arcmenu.ArcMenuBridge;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -20,6 +21,7 @@ public final class ProjectMemoPlugin extends JavaPlugin {
     private MemoRedis redis;
     private LocationsReader locations;   // v1.2.0：LocationMarker 路标库只读
     private LocSync locSync;             // v1.2.0：选址 → !!loc 同步
+    private ArcMenuBridge arcMenu;       // v1.2.0-arcmenu：ArcMenu 只读展示接入层
     private File importsDir;
     private int dailyLimit = 2;
     private String role = "single";
@@ -51,7 +53,7 @@ public final class ProjectMemoPlugin extends JavaPlugin {
 
         redis = new MemoRedis(this);
         if (redis.enabled()) {
-            if (isMirror()) redis.startMirror(this::applyMirrorSnapshot);
+            if (isMirror()) redis.startMirror(this::applyMirrorSnapshot, this::applyRemoteStats);
             else if ("writer".equals(role)) redis.startWriter();
         }
 
@@ -61,6 +63,9 @@ public final class ProjectMemoPlugin extends JavaPlugin {
         getLogger().info("地标库: " + locations.file().getPath()
                 + " | loc-sync=" + getConfig().getString("loc-sync.mode", "socket")
                 + (isMirror() ? "（mirror 不同步选址）" : ""));
+
+        arcMenu = new ArcMenuBridge(this);
+        arcMenu.start();
 
         importsDir = new File(dir, "imports");
         if (!importsDir.exists()) {
@@ -72,6 +77,27 @@ public final class ProjectMemoPlugin extends JavaPlugin {
             MemoCommand mc = new MemoCommand(this);
             cmd.setExecutor(mc);
             cmd.setTabCompleter(mc);
+        }
+
+        PluginCommand uiCmd = getCommand("m");
+        if (uiCmd != null) {
+            // /m 由本插件声明（这样才会出现在客户端 tab 补全里）；实际交给 ArcMenu 打开新版菜单。
+            uiCmd.setExecutor((sender, command, label, args) -> {
+                if (!(sender instanceof org.bukkit.entity.Player player)) {
+                    sender.sendMessage("[ProjectMemo] /m 只能由玩家使用");
+                    return true;
+                }
+                if (!player.hasPermission("memo.use")) {
+                    player.sendMessage("[ProjectMemo] 你没有使用备忘录的权限");
+                    return true;
+                }
+                // ArcMenu 用 legacy commandMap 注册入口命令，命名空间可能是 "arcmenu:" 也可能没有，
+                // 两种写法都试一次（performCommand 找不到命令会返回 false）。
+                if (!player.performCommand("memoui") && !player.performCommand("arcmenu:memoui")) {
+                    player.sendMessage("[ProjectMemo] 新版菜单不可用（ArcMenu 未启用或未加载菜单）");
+                }
+                return true;
+            });
         }
 
         if (getConfig().getBoolean("join-button", true)) {
@@ -100,6 +126,7 @@ public final class ProjectMemoPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (arcMenu != null) arcMenu.stop();
         if (redis != null) redis.stop();
         if (wiki != null) wiki.export(); // 停服前保证 wiki-export 最新（未启用时为空操作）
         if (store != null && !isMirror()) store.save();
@@ -126,14 +153,32 @@ public final class ProjectMemoPlugin extends JavaPlugin {
 
     public LocSync getLocSync() { return locSync; }
 
+    public ArcMenuBridge getArcMenu() { return arcMenu; }
+
     /** 数据变更钩子（MemoActions 每次写盘后调用）：驱动 wiki 导出防抖 + writer 发布快照 */
     public void onDataChanged() {
+        if (arcMenu != null) arcMenu.refresh();      // v1.2.0-arcmenu：重建占位符槽位表
         if (wiki != null) wiki.scheduleDebounced();
         if (redis != null && redis.enabled() && "writer".equals(role))
             redis.publishAsync(getStore().data().toJson().toString());
     }
 
     public boolean isMirror() { return "mirror".equals(role); }
+
+    /** Redis 是否启用（StatsTopProvider 用它判断要不要发布榜单）。 */
+    public boolean isRedisEnabled() { return redis != null && redis.enabled(); }
+
+    /** writer：把排行榜快照发布到 Redis（创造服镜像读取）。 */
+    public void publishStats(String statsJson) {
+        if (redis != null) redis.publishStatsAsync(statsJson);
+    }
+
+    /** mirror：收到 Redis 推送的排行榜速照 → 交给 StatsTopProvider（创造服显示主服榜单）。 */
+    private void applyRemoteStats(String json) {
+        if (arcMenu != null && arcMenu.stats() != null) {
+            org.bukkit.Bukkit.getScheduler().runTask(this, () -> arcMenu.stats().applyRemote(json));
+        }
+    }
 
     /** mirror 收到 Redis 快照（redis 线程回调）→ 主线程应用：隐藏选址对所有人脱敏 + 全量同步在线客户端 */
     public void applyMirrorSnapshot(String json) {

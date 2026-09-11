@@ -34,6 +34,18 @@ public final class MemoRedis {
 
     /** writer：最新待发快照（只保留最新——全量快照语义，旧的无意义） */
     private volatile String pendingSnapshot;
+    /** Redis 中排行榜快照的 key（writer 写 / mirror 读）。 */
+    private final String statsKey;
+
+    /** 待发送的排行榜快照。 */
+    private volatile String pendingStats;
+
+    /** writer：发布排行榜快照（异步、不阻塞主线程）。 */
+    public void publishStatsAsync(String statsJson) {
+        if (!enabled || !running) return;
+        pendingStats = statsJson;
+        synchronized (wakeLock) { wakeLock.notifyAll(); }
+    }
     private final Object wakeLock = new Object();
 
     public MemoRedis(ProjectMemoPlugin plugin) {
@@ -44,6 +56,7 @@ public final class MemoRedis {
         this.password = plugin.getConfig().getString("redis.password", "");
         this.channel = plugin.getConfig().getString("redis.channel", "memo");
         this.snapshotKey = plugin.getConfig().getString("redis.snapshot-key", "memo:snapshot");
+        this.statsKey = plugin.getConfig().getString("redis.stats-key", "memo:stats");
     }
 
     public boolean enabled() { return enabled; }
@@ -76,19 +89,29 @@ public final class MemoRedis {
         int failures = 0;
         while (running) {
             String json;
+            String stats;
             synchronized (wakeLock) {
-                while (running && pendingSnapshot == null) {
+                while (running && pendingSnapshot == null && pendingStats == null) {
                     try { wakeLock.wait(5000); } catch (InterruptedException ignored) { }
                 }
                 json = pendingSnapshot;
                 pendingSnapshot = null;
+                stats = pendingStats;
+                pendingStats = null;
             }
-            if (!running || json == null) continue;
+            if (!running || (json == null && stats == null)) continue;
             try {
                 if (conn == null) conn = connect();
-                conn.cmd("SET", snapshotKey, json);
-                Object r1 = conn.readReply();
-                if (r1 instanceof RespError) throw new IOException("SET 失败: " + ((RespError) r1).msg);
+                if (json != null) {
+                    conn.cmd("SET", snapshotKey, json);
+                    Object r1 = conn.readReply();
+                    if (r1 instanceof RespError) throw new IOException("SET 失败: " + ((RespError) r1).msg);
+                }
+                if (stats != null) {
+                    conn.cmd("SET", statsKey, stats);
+                    Object r3 = conn.readReply();
+                    if (r3 instanceof RespError) throw new IOException("SET stats 失败: " + ((RespError) r3).msg);
+                }
                 conn.cmd("PUBLISH", channel, "update");
                 Object r2 = conn.readReply();
                 if (r2 instanceof RespError) throw new IOException("PUBLISH 失败: " + ((RespError) r2).msg);
@@ -102,24 +125,29 @@ public final class MemoRedis {
                 failures++;
                 if (failures == 1 || failures % 10 == 0)
                     plugin.getLogger().warning("Redis writer 失败(" + failures + "): " + e.getMessage() + "，熔断退避后重试");
-                if (pendingSnapshot == null) pendingSnapshot = json; // 无更新快照则重试本份
+                if (pendingSnapshot == null && json != null) pendingSnapshot = json;
+                if (pendingStats == null && stats != null) pendingStats = stats;
                 try { Thread.sleep(Math.min(30000L, 2000L * failures)); } catch (InterruptedException ignored) { }
             }
         }
         closeQuiet(conn);
     }
 
-    // ───────────────────────── mirror ─────────────────────────
-
     public void startMirror(Consumer<String> onSnapshot) {
-        running = true;
-        worker = new Thread(() -> mirrorLoop(onSnapshot), "ProjectMemo-Redis-Mirror");
-        worker.setDaemon(true);
-        worker.start();
-        plugin.getLogger().info("Redis mirror 已启动: " + host + ":" + port + " channel=" + channel + " key=" + snapshotKey);
+        startMirror(onSnapshot, null);
     }
 
-    private void mirrorLoop(Consumer<String> onSnapshot) {
+    /** mirror：onStats 非空时，同时把 Redis 里的排行榜快照回调出去（创造服读主服榜单）。 */
+    public void startMirror(Consumer<String> onSnapshot, Consumer<String> onStats) {
+        running = true;
+        worker = new Thread(() -> mirrorLoop(onSnapshot, onStats), "ProjectMemo-Redis-Mirror");
+        worker.setDaemon(true);
+        worker.start();
+        plugin.getLogger().info("Redis mirror 已启动: " + host + ":" + port + " channel=" + channel
+                + " key=" + snapshotKey + (onStats == null ? "" : " + statsKey=" + statsKey));
+    }
+
+    private void mirrorLoop(Consumer<String> onSnapshot, Consumer<String> onStats) {
         int failures = 0;
         while (running) {
             Conn sub = null;
@@ -130,7 +158,7 @@ public final class MemoRedis {
                 if (confirm instanceof RespError) throw new IOException("SUBSCRIBE 失败: " + ((RespError) confirm).msg);
                 failures = 0;
                 // 首连立即拉一次快照（writer 未发布过时为空，等待后续消息）
-                applyOnce(onSnapshot);
+                applyOnce(onSnapshot, onStats);
                 long lastFetch = System.currentTimeMillis();
                 sub.sock.setSoTimeout(60000);
                 while (running) {
@@ -140,12 +168,12 @@ public final class MemoRedis {
                     } catch (SocketTimeoutException te) {
                         // 10 分钟兜底重拉（防丢消息）
                         if (System.currentTimeMillis() - lastFetch > 600000L) {
-                            if (applyOnce(onSnapshot)) lastFetch = System.currentTimeMillis();
+                            if (applyOnce(onSnapshot, onStats)) lastFetch = System.currentTimeMillis();
                         }
                         continue;
                     }
                     if (msg instanceof List<?> l && l.size() >= 3 && "message".equals(l.get(0))) {
-                        if (applyOnce(onSnapshot)) lastFetch = System.currentTimeMillis();
+                        if (applyOnce(onSnapshot, onStats)) lastFetch = System.currentTimeMillis();
                     }
                 }
             } catch (Exception e) {
@@ -159,28 +187,40 @@ public final class MemoRedis {
         }
     }
 
-    /** 拉一次快照并回调；返回是否成功 */
-    private boolean applyOnce(Consumer<String> onSnapshot) {
-        String snap = fetchSnapshot();
+    /** 拉一次快照（+排行榜）并回调；返回是否成功 */
+    private boolean applyOnce(Consumer<String> onSnapshot, Consumer<String> onStats) {
+        boolean ok = true;
+        String snap = fetchKey(snapshotKey);
         if (snap == null) {
             plugin.getLogger().warning("Redis mirror: 快照不存在或读取失败（writer 可能未发布）");
-            return false;
+            ok = false;
+        } else {
+            try {
+                onSnapshot.accept(snap);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Redis mirror: 快照应用失败: " + e);
+                ok = false;
+            }
         }
-        try {
-            onSnapshot.accept(snap);
-            return true;
-        } catch (Exception e) {
-            plugin.getLogger().warning("Redis mirror: 快照应用失败: " + e);
-            return false;
+        if (onStats != null) {
+            String stats = fetchKey(statsKey);
+            if (stats != null) {
+                try {
+                    onStats.accept(stats);
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Redis mirror: 排行榜应用失败: " + e);
+                }
+            }
         }
+        return ok;
     }
 
-    /** 短连接 GET 快照（订阅态连接不能跑 GET） */
-    private String fetchSnapshot() {
+    /** 短连接 GET 指定 key（订阅态连接不能跑 GET） */
+    private String fetchKey(String key) {
         Conn c = null;
         try {
             c = connect();
-            c.cmd("GET", snapshotKey);
+            c.cmd("GET", key);
             Object r = c.readReply();
             return r instanceof String s ? s : null;
         } catch (Exception e) {
@@ -189,8 +229,6 @@ public final class MemoRedis {
             closeQuiet(c);
         }
     }
-
-    // ───────────────────────── RESP ─────────────────────────
 
     private Conn connect() throws IOException {
         Socket sock = new Socket();

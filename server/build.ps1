@@ -12,7 +12,7 @@ New-Item -ItemType Directory -Force -Path $Cls | Out-Null
 
 $jars = Get-ChildItem $Lib -Filter *.jar
 $cp = ($jars | ForEach-Object { $_.FullName }) -join ";"
-$sources = (Get-ChildItem "src\main\java\com\sthstrange\projectmemo" -Filter *.java).FullName
+$sources = (Get-ChildItem "src\main\java\com\sthstrange\projectmemo" -Recurse -Filter *.java).FullName
 
 Write-Host "[build] compiling (release 21)..."
 & "$JdkBin\javac.exe" -encoding UTF-8 -proc:none --release 21 -cp $cp -d $Cls $sources
@@ -33,9 +33,9 @@ if (Test-Path "$Cls\META-INF") { Remove-Item -Recurse -Force "$Cls\META-INF" }
 Write-Host "[build] packaging..."
 New-Item -ItemType Directory -Force -Path (Join-Path $PSScriptRoot "build") | Out-Null
 Push-Location $Cls
-& "$JdkBin\jar.exe" cf ..\ProjectMemo-1.2.0.jar .
+& "$JdkBin\jar.exe" cf ..\ProjectMemo-1.2.0-arcmenu.jar .
 if ($LASTEXITCODE -ne 0) { throw "jar failed" }
 Pop-Location
 
 Write-Host "[build] done:"
-Get-Item (Join-Path $PSScriptRoot "build\ProjectMemo-1.2.0.jar") | Select-Object FullName,Length
+Get-Item (Join-Path $PSScriptRoot "build\ProjectMemo-1.2.0-arcmenu.jar") | Select-Object FullName,Length

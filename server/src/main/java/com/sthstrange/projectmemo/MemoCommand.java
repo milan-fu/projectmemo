@@ -1,6 +1,7 @@
 package com.sthstrange.projectmemo;
 
 import com.sthstrange.projectmemo.MemoData.MaterialRow;
+import com.sthstrange.projectmemo.arcmenu.ArcMenuBridge;
 import com.sthstrange.projectmemo.MemoData.Project;
 import com.sthstrange.projectmemo.MemoData.Task;
 import net.kyori.adventure.text.Component;
@@ -344,6 +345,32 @@ public final class MemoCommand implements CommandExecutor, TabCompleter {
                 }
                 return;
             }
+            case "arcmenu": { // v1.2.0-arcmenu：ArcMenu 只读展示接入层
+                if (!p.hasPermission("memo.admin")) { err(p, "无权限"); return; }
+                ArcMenuBridge bridge = plugin.getArcMenu();
+                if (bridge == null) { err(p, "ArcMenu 接入层未初始化"); return; }
+                String action = args.length > 1 ? args[1].toLowerCase() : "status";
+                switch (action) {
+                    case "status":
+                        okMsg(p, bridge.statusLine());
+                        return;
+                    case "export": {
+                        if (!bridge.isEnabled()) { err(p, "接入层未启用：" + bridge.disabledReason()); return; }
+                        int written = bridge.exportNow();
+                        okMsg(p, "已重建菜单文件 " + written + " 个（等待重载窗口生效）");
+                        return;
+                    }
+                    case "reload": {
+                        if (!bridge.isEnabled()) { err(p, "接入层未启用：" + bridge.disabledReason()); return; }
+                        bridge.reloadNow();
+                        okMsg(p, "已重载 ArcMenu 菜单（会关闭当前所有 ArcMenu 会话）");
+                        return;
+                    }
+                    default:
+                        err(p, "用法: /memo arcmenu status|export|reload");
+                        return;
+                }
+            }
             default:
                 err(p, "未知子命令。试试 /memo（总览）、/memo show <编号>");
         }
@@ -361,7 +388,7 @@ public final class MemoCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> ROOT = Arrays.asList("list", "show", "landmarks", "manual", "create", "sub",
             "claim", "unclaim", "done", "set", "managers", "participants", "import", "finish", "reopen",
-            "archive", "delete", "daily", "admin");
+            "archive", "delete", "daily", "admin", "arcmenu");
 
     @Override
     public List<String> onTabComplete(CommandSender s, Command command, String alias, String[] args) {
@@ -387,6 +414,9 @@ public final class MemoCommand implements CommandExecutor, TabCompleter {
                     break;
                 case "admin":
                     out.addAll(Arrays.asList("reload", "save"));
+                    break;
+                case "arcmenu":
+                    out.addAll(Arrays.asList("status", "export", "reload"));
                     break;
                 default: break;
             }

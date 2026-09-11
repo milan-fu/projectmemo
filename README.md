@@ -19,6 +19,7 @@
 - **服务器地标**：客户端「地标」页 / 聊天 `/memo landmarks` 只读浏览路标库（LocationMarker `!!loc`）；工程选址确认后自动收录为路标，隐藏选址 / 清空选址 / 删除工程时自动移除，条目此后由 `!!loc` 管理
 - **机器使用说明**：工程信息页一键「加入使用说明」，已收录工程集中列在「使用说明」页 / `/memo manual`，点条目直达工程详情（正文 = 工程描述）；竣工后仍可收录/移出，归档后仍显示
 - **无模组玩家**：进服提示与总览页提供 [工程总览] [服务器地标] [机器使用手册] 可点击入口，无需记命令
+- **ArcMenu 只读菜单（可选，服务端 `1.2.0-arcmenu` 变体）**：装了 **ArcMenu** + **PlaceholderAPI** 的服务器会生成一套游戏内只读菜单（工程 / 地标 / 使用说明 / 排行榜 / 常用指令 / 服务器信息等），入口命令 `memoui`（`/m` 同步转发）；纯展示、不写回任何数据，缺任一依赖时该层自动停用并打日志，其余功能不受影响
 - 聊天框只读 UI（hover/点击/翻页）、审计日志（滚动 500 条）
 
 ## 安装
@@ -27,11 +28,14 @@
 
 > 也可从 Hangar 直接下载：https://hangar.papermc.io/fudoghh/ProjectMemo
 
-1. `ProjectMemo-1.2.0.jar` 放入 `plugins/`
+1. 服务端插件（二选一，放入 `plugins/`）：
+   - `ProjectMemo-1.2.0.jar`：基础版
+   - `ProjectMemo-1.2.0-arcmenu.jar`：含 ArcMenu 只读菜单接入层（额外需要 **ArcMenu** 与 **PlaceholderAPI**；缺任一时该层自动停用，其余功能不受影响）
 2. 重启后编辑 `plugins/ProjectMemo/config.yml`（全部配置项见文件内注释）：
    - `role: single` 单服使用；`role: writer` + `redis` 配置 = 对外发布镜像的写端；`role: mirror` = 只读镜像端（如创造服）
    - `wiki-export: true` 开启 Markdown 导出；`qq-events: true` 开启事件日志行
    - `loc-sync.mode: socket` 开启「选址 → LocationMarker 路标库」自动同步（经 MCDR `remote_console`，默认 `127.0.0.1:25999`；无 MCDR 的环境可用 `dry-run` 只记日志或 `off` 关闭）；`locations-file` 指路标库路径（与 LocBridge 同约定）
+   - `arcmenu:` 段配置游戏内只读菜单：入口命令（默认 `memoui`）、reload 守卫（默认仅零在线时执行）、排行榜数据源（主服 MCDR remote_console 25999）与各页文案
 3. LuckPerms 给需要的组授权（见下方权限表）
 
 ### 客户端模组（Fabric 1.21.11）
@@ -94,6 +98,7 @@ A **project-coordination memo system** for technical Minecraft communities: proj
 **Highlights in 1.2.0**: server landmarks view (client tab / `/memo landmarks`) reading the LocationMarker `!!loc` waypoint library, with project sites auto-registered as waypoints (and auto-removed when the site is hidden/cleared or the project is deleted); machine usage manual (one-click "add to manual" on a project's info page, listed on the Manual tab / `/memo manual`, entry jumps to the project whose description is the manual body); mod-less players get clickable [Overview] [Server Landmarks] [Usage Manual] entries in chat.
 
 **Known limitations**: in the English UI some buttons may overflow or overlap (button widths are hard-coded pixels designed for Chinese text). Purely cosmetic — no functional impact; the Chinese UI is pixel-perfect. Landmark sync requires MCDR's `remote_console` plus LocationMarker (without LocationMarker the landmark page is simply empty); wiki exports use Markdown hard breaks for multi-line descriptions.
+- **ArcMenu read-only menus (optional, server `1.2.0-arcmenu` build)**: with ArcMenu + PlaceholderAPI installed, the plugin exports in-game read-only menus (projects / landmarks / usage manual / leaderboards / command cheatsheets) reachable via `memoui`; display-only with no write-back, and the layer disables itself when either dependency is missing.
 - Integrations: Markdown wiki export, `[MEMO-EVENT]` console lines (project created/completed/deleted) for chat bots, LuckPerms permission nodes plus per-project manager lists (data-driven, no permission nodes needed).
 
 **Install**: drop the jar into `plugins/` (server) or `mods/` (client, requires Fabric API; **malilib is NOT required**). Download jars from [GitHub Releases](https://github.com/milan-fu/projectmemo/releases); the server plugin is also on [Hangar](https://hangar.papermc.io/fudoghh/ProjectMemo). See config comments in `plugins/ProjectMemo/config.yml` for `role`/`redis`/`wiki-export`/`qq-events`.

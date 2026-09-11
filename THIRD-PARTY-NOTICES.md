@@ -15,6 +15,7 @@ ProjectMemo 本体以 **MIT** 许可发布（见 [LICENSE](LICENSE)）。本仓�
 |---|---|---|---|
 | Leaves API | — | GPLv3 | <https://github.com/LeavesMC/Leaves> |
 | AuthMe | 6.0.0 | GPLv3 | <https://github.com/AuthMe/AuthMeReloaded> |
+| PlaceholderAPI | 2.12.3 | GPL-3.0 | <https://github.com/PlaceholderAPI/PlaceholderAPI> |
 | Adventure api / key | 4.26.1 | MIT | <https://github.com/KyoriPowered/adventure> |
 | Gson | 2.10.1 | Apache-2.0 | <https://github.com/google/gson> |
 | BungeeCord chat | 1.21-R0.2 | BSD-3-Clause | <https://github.com/SpigotMC/BungeeCord> |
