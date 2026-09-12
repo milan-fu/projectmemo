@@ -1,0 +1,66 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version '2.0.146'
+}
+
+base { archivesName = 'projectmemo-neoforge-client' }
+version = project.version
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        client {
+            client()
+            // P1 联调：-PquickPlay=host:port 自动直连服务器
+            if (project.hasProperty('quickPlay')) {
+                programArguments.addAll('--quickPlayMultiplayer', project.property('quickPlay').toString())
+            }
+            // P0 自测：-PquickPlaySingle=world_test 自动进单人档
+            if (project.hasProperty('quickPlaySingle')) {
+                programArguments.addAll('--quickPlaySingleplayer', project.property('quickPlaySingle').toString())
+            }
+        }
+    }
+
+    mods {
+        projectmemo { sourceSet sourceSets.main }
+    }
+}
+
+// ==== 单一事实源：共享源码只在 ../client，不复制 ====
+sourceSets.main {
+    java.srcDir '../client/src/main/java'
+    java.exclude '**/MemoClientMod.java'              // 唯一 exclude（Fabric 入口）
+    resources.srcDir '../client/src/main/resources'
+    resources.exclude 'fabric.mod.json'
+}
+
+processResources {
+    filesMatching('META-INF/neoforge.mods.toml') { expand 'version': project.version }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+// LICENSE：与 Fabric 版同源（直接引用 ../client/LICENSE，不复制第二份），命名也对齐 Fabric 版的 LICENSE_<archivesName>
+jar {
+    from('../client/LICENSE') {
+        rename { it + '_' + base.archivesName.get() }
+    }
+}
+
+// 守门脚本：编译前检查三条不变式（I1/I2/I3）
+tasks.register('sourceCheck', Exec) {
+    workingDir projectDir
+    commandLine 'python3', 'source_check.py'
+}
+
+tasks.named('compileJava') { dependsOn 'sourceCheck' }

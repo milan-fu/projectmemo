@@ -2,7 +2,7 @@
 
 为 Minecraft 生电/技术社区设计的**大工程协作备忘录**：立项、子任务、材料收集进度（真实容器核验）、投影导入、选址管理。
 
-- **服务端插件**（Paper 系）是数据的唯一写入口；**客户端模组**（Fabric，masa 风格面板）是主编辑入口（快捷键 `J`）
+- **服务端插件**（Paper 系）是数据的唯一写入口；**客户端模组**（Fabric / NeoForge 两版，masa 风格面板）是主编辑入口（快捷键 `J`）
 - 不装模组的玩家通过聊天框 `/memo` **只读**查看
 - **单人游戏也能用**：内置本地后端，数据随世界存档保存
 - 可选 Redis 镜像模式：创造服/其他服务器**只读**同步全部数据
@@ -41,6 +41,13 @@
 3. 进入安装了插件的服务器，按 **J** 打开面板
 4. 单人游戏直接进入即可使用（本地模式，全功能）
 
+### 客户端模组（NeoForge 1.21.11）
+
+1. 安装 [NeoForge](https://neoforged.net/) **21.11.x**（版本线要跟 Minecraft 1.21.11 对应）
+2. `projectmemo-neoforge-client-1.2.0.jar` 放入 `.minecraft/mods/`（下载见 [GitHub Releases](https://github.com/milan-fu/projectmemo/releases)）
+3. 进入安装了插件的服务器，按 **J** 打开面板；功能与 Fabric 版一致，**不需要 Fabric API**
+4. 源码在 `client-neoforge/`：与 `client/` **共享同一套客户端代码**（Gradle `srcDir` 直接引用 + 一层约 35 行的 Fabric API 兼容垫片），因此两版行为一致、只有一份逻辑需要维护
+
 ## 权限节点
 
 | 节点 | 默认 | 作用 |
@@ -57,7 +64,8 @@
 ## 构建
 
 - **服务端**：JDK 21。`server/build.ps1`（javac + shade json/adventure-plain，依赖在 `server/lib/`；可用 `JAVA_HOME` 指定 JDK）
-- **客户端**：Gradle 9.5+（fabric-loom），`cd client && gradle build`（需联网拉取 Minecraft/映射）
+- **客户端（Fabric）**：Gradle 9.5+（fabric-loom），`cd client && gradle build`（需联网拉取 Minecraft/映射）
+- **客户端（NeoForge）**：JDK 21 + Gradle 8.8+/9.x（ModDevGradle），`cd client-neoforge && gradle build`（首次会拉取 NeoForge/Minecraft 依赖；产物 `projectmemo-neoforge-client-<版本>.jar`）
 
 ## 外部平台
 

@@ -1,0 +1,24 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "All-Rights-Reserved"
+
+[[mods]]
+modId = "projectmemo"
+version = "${version}"
+displayName = "ProjectMemo Client (NeoForge)"
+authors = "sth-strange"
+description = '''ProjectMemo 工程备忘录客户端模组（NeoForge 版）。需服务器安装 memo-server 插件；单人档自带本地后端。'''
+
+[[dependencies.projectmemo]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.11,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.projectmemo]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.11,1.22)"
+ordering = "NONE"
+side = "BOTH"

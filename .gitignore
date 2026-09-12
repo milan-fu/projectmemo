@@ -13,3 +13,8 @@ client/.gradle/
 *.jar
 lib/*.jar
 !lib/README.md
+
+# client-neoforge build outputs（源码由 srcDir 引用 client/src，仓库内不复制）
+client-neoforge/build/
+client-neoforge/.gradle/
+client-neoforge/run/
